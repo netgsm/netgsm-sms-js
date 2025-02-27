@@ -1,39 +1,41 @@
-# Güvenlik Politikası
+# Security Policy
 
-## Desteklenen Sürümler
+## Supported Versions
 
-Aşağıdaki sürümler şu anda güvenlik güncellemeleri ile desteklenmektedir:
+The following versions are currently supported with security updates:
 
-| Sürüm | Destekleniyor |
-| ----- | ------------- |
-| 1.1.x | :white_check_mark: |
-| 1.0.x | :x: |
+| Version | Supported          |
+| ------- | ------------------ |
+| 1.1.x   | :white_check_mark: |
+| 1.0.x   | :x:                |
 
-## Güvenlik Açığı Bildirme
+## Reporting a Vulnerability
 
-@netgsm/sms projesinde bir güvenlik açığı bulduysanız, lütfen bunu halka açık bir şekilde bildirmek yerine doğrudan proje yöneticilerine bildirin. Güvenlik açıklarını aşağıdaki adımları izleyerek bildirebilirsiniz:
+If you discover a security vulnerability in the @netgsm/sms project, please report it directly to the project maintainers rather than disclosing it publicly. You can report security vulnerabilities by following these steps:
 
-1. Güvenlik açığının ayrıntılarını içeren bir e-posta gönderin.
-2. Güvenlik açığının nasıl yeniden üretilebileceğini açıklayın.
-3. Mümkünse, güvenlik açığını gidermek için önerilen bir çözüm veya geçici çözüm sağlayın.
+1. Send an email with details of the security vulnerability.
+2. Explain how the vulnerability can be reproduced.
+3. If possible, provide a suggested fix or workaround for the vulnerability.
 
-Güvenlik açığı bildiriminizi aldıktan sonra:
+After receiving your security vulnerability report:
 
-1. Bildirimi aldığımızı size bildireceğiz.
-2. Güvenlik açığını doğrulayacağız.
-3. Düzeltme için bir zaman çizelgesi belirleyeceğiz.
-4. Düzeltme yayınlandığında sizi bilgilendireceğiz.
+1. We will acknowledge receipt of your report.
+2. We will verify the vulnerability.
+3. We will establish a timeline for fixing it.
+4. We will inform you when the fix is released.
 
-## Güvenlik En İyi Uygulamaları
+## Security Best Practices
 
-@netgsm/sms kütüphanesini kullanırken aşağıdaki güvenlik en iyi uygulamalarını izlemenizi öneririz:
+We recommend following these security best practices when using the @netgsm/sms library:
 
-1. Her zaman en son sürümü kullanın.
-2. API kimlik bilgilerinizi (userCode, password) güvenli bir şekilde saklayın, asla kaynak kodunuza dahil etmeyin.
-3. Ortam değişkenlerini (.env dosyası) kullanarak kimlik bilgilerinizi yönetin.
-4. Kimlik bilgilerinizi sürüm kontrolünden hariç tutun (.gitignore).
-5. Üretim ortamında HTTPS kullanın.
+1. **Keep the library updated**: Always use the latest version of the library to benefit from security patches.
+2. **Secure your API credentials**: Store your Netgsm API credentials securely and never hardcode them in your application code.
+3. **Use environment variables**: Store sensitive information like API keys in environment variables rather than in your code.
+4. **Implement proper error handling**: Handle errors properly to prevent information leakage.
+5. **Validate input data**: Always validate user input before passing it to the library.
+6. **Implement rate limiting**: Implement rate limiting to prevent abuse of your application.
+7. **Monitor your application**: Regularly monitor your application for unusual activity.
 
-## Bağımlılık Güvenliği
+## Security Updates
 
-Projemiz, bağımlılıklardaki güvenlik açıklarını izlemek için GitHub'ın Dependabot uyarılarını kullanmaktadır. Bağımlılıklarımızı düzenli olarak güncelleyerek bilinen güvenlik açıklarını gidermeye çalışıyoruz. 
+Security updates will be released as patch versions and announced in the CHANGELOG.md file. We recommend subscribing to GitHub releases to be notified of new versions. 

@@ -1,41 +1,34 @@
-<!-- Lütfen aşağıdaki şablonu kullanarak pull request'inizi açıklayın -->
+## 🎯 Purpose of Changes
+<!-- What is the purpose of this PR? -->
 
-## Açıklama
-<!-- Bu PR'ın ne yaptığını kısaca açıklayın -->
+## 🧪 How Was It Tested?
+<!-- How did you test your changes? What test scenarios were applied? -->
 
-## İlgili Sorun
-<!-- Bu PR'ın çözdüğü sorun(lar) (varsa) -->
-<!-- "Fixes #123" veya "Closes #123" formatını kullanın -->
+## 📝 Type of Change
+<!-- What type of change? Check the appropriate boxes. -->
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
+- [ ] Code quality improvement
+- [ ] Performance improvement
+- [ ] Test addition or update
+- [ ] CI/CD process improvement
+- [ ] Other (please describe)
 
-## Değişiklik Türü
-<!-- Lütfen uygun olanı işaretleyin (x ile) -->
-- [ ] Hata Düzeltmesi (geriye dönük uyumlu bir düzeltme)
-- [ ] Yeni Özellik (geriye dönük uyumlu bir ekleme)
-- [ ] Yıkıcı Değişiklik (geriye dönük uyumlu olmayan bir değişiklik)
-- [ ] Dokümantasyon Güncellemesi
-- [ ] Kod Stili Güncellemesi
-- [ ] Performans İyileştirmesi
-- [ ] Test Eklemesi/Güncellemesi
-- [ ] CI/CD Yapılandırma Değişikliği
-- [ ] Diğer (lütfen açıklayın)
+## 🔄 Related Issues
+<!-- Which Issue or Task is this PR related to? -->
+Resolves #
 
-## Test Edildi mi?
-<!-- Lütfen uygun olanı işaretleyin (x ile) -->
-- [ ] Evet, yeni birim testleri ekledim
-- [ ] Evet, mevcut testleri güncelledim
-- [ ] Evet, manuel olarak test ettim
-- [ ] Hayır, test etmedim (lütfen nedenini açıklayın)
+## 📸 Screenshots (if applicable)
+<!-- If your changes include visual changes, please add screenshots -->
 
-## Kontrol Listesi
-<!-- Lütfen tamamlanan maddeleri işaretleyin (x ile) -->
-- [ ] Kodumu gözden geçirdim
-- [ ] Yorumlarım açık ve anlaşılır
-- [ ] Dokümantasyonu güncelledim
-- [ ] Tüm testler başarıyla geçiyor
-- [ ] Değişikliklerim geriye dönük uyumlu (veya yıkıcı değişiklik olarak işaretledim)
+## 📋 Additional Information
+<!-- Any additional notes for reviewers, areas that need special attention, etc. -->
 
-## Ekran Görüntüleri
-<!-- Varsa ekran görüntüleri ekleyin -->
-
-## Ek Bilgiler
-<!-- Değişikliklerinizle ilgili başka bilgiler ekleyin --> 
+## ✅ Checklist
+- [ ] Code follows the project's coding standards (linting)
+- [ ] Tests have been added or updated
+- [ ] Documentation has been updated
+- [ ] All tests pass successfully
+- [ ] PR title is meaningful and descriptive 

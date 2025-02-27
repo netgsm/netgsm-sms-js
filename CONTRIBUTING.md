@@ -1,43 +1,43 @@
-# Katkıda Bulunma Rehberi
+# Contributing Guide
 
-@netgsm/sms projesine katkıda bulunmak istediğiniz için teşekkür ederiz! Bu rehber, projeye katkıda bulunmak isteyenler için adım adım talimatlar içerir.
+Thank you for your interest in contributing to the @netgsm/sms project! This guide contains step-by-step instructions for those who want to contribute to the project.
 
-## İçindekiler
+## Table of Contents
 
-- [Davranış Kuralları](#davranış-kuralları)
-- [Nasıl Katkıda Bulunabilirim?](#nasıl-katkıda-bulunabilirim)
-- [Geliştirme Ortamı Kurulumu](#geliştirme-ortamı-kurulumu)
-- [Geliştirme Süreci](#geliştirme-süreci)
-- [Kod Standartları](#kod-standartları)
-- [Pull Request Süreci](#pull-request-süreci)
-- [Test Yazma](#test-yazma)
-- [Dokümantasyon](#dokümantasyon)
-- [Sürüm Oluşturma](#sürüm-oluşturma)
-- [Sorun Bildirme](#sorun-bildirme)
-- [Lisans](#lisans)
+- [Code of Conduct](#code-of-conduct)
+- [How Can I Contribute?](#how-can-i-contribute)
+- [Development Environment Setup](#development-environment-setup)
+- [Development Process](#development-process)
+- [Code Standards](#code-standards)
+- [Pull Request Process](#pull-request-process)
+- [Writing Tests](#writing-tests)
+- [Documentation](#documentation)
+- [Creating Releases](#creating-releases)
+- [Reporting Issues](#reporting-issues)
+- [License](#license)
 
-## Davranış Kuralları
+## Code of Conduct
 
-Bu proje [Katkıda Bulunanlar Sözleşmesi](./CODE_OF_CONDUCT.md) ile yönetilmektedir. Projeye katkıda bulunarak bu kurallara uymayı kabul etmiş olursunuz.
+This project is governed by the [Contributor Covenant](./CODE_OF_CONDUCT.md). By participating, you agree to abide by these rules.
 
-## Nasıl Katkıda Bulunabilirim?
+## How Can I Contribute?
 
-Projeye katkıda bulunmanın birçok yolu vardır:
+There are many ways to contribute to the project:
 
-- **Hata Raporları**: Bulduğunuz hataları bildirin
-- **Özellik İstekleri**: Yeni özellik önerilerinde bulunun
-- **Kod Katkıları**: Hata düzeltmeleri veya yeni özellikler ekleyin
-- **Dokümantasyon**: Dokümantasyonu iyileştirin veya genişletin
-- **Örnekler**: Yeni kullanım örnekleri ekleyin
-- **Testler**: Test kapsamını artırın
+- **Bug Reports**: Report bugs you find
+- **Feature Requests**: Suggest new features
+- **Code Contributions**: Fix bugs or add new features
+- **Documentation**: Improve or expand documentation
+- **Examples**: Add new usage examples
+- **Tests**: Expand test coverage
 
-## Geliştirme Ortamı Kurulumu
+## Development Environment Setup
 
-1. Projeyi fork edin
-2. Repoyu klonlayın: `git clone https://github.com/[KULLANICI_ADINIZ]/netgsm-sms-js.git`
-3. Proje dizinine gidin: `cd netgsm-sms-js`
-4. Bağımlılıkları yükleyin: `npm install`
-5. `.env.example` dosyasını `.env` olarak kopyalayın ve gerekli değişkenleri doldurun:
+1. Fork the project
+2. Clone the repo: `git clone https://github.com/[KULLANICI_ADINIZ]/netgsm-sms-js.git`
+3. Navigate to the project directory: `cd netgsm-sms-js`
+4. Install dependencies: `npm install`
+5. Copy the `.env.example` file to `.env` and fill in the required variables:
    ```
    NETGSM_USERCODE=your_usercode
    NETGSM_PASSWORD=your_password
@@ -45,38 +45,38 @@ Projeye katkıda bulunmanın birçok yolu vardır:
    NETGSM_RECIPIENT=your_test_phone_number
    ```
 
-### Geliştirme Komutları
+### Development Commands
 
-- `npm run build`: TypeScript kodunu derler
-- `npm test`: Tüm testleri çalıştırır
-- `npm run test:unit`: Sadece birim testlerini çalıştırır
-- `npm run test:integration`: Sadece entegrasyon testlerini çalıştırır
-- `npm run lint`: Kod kalitesini kontrol eder
-- `npm run lint:fix`: Kod kalitesi sorunlarını otomatik düzeltir
+- `npm run build`: Compiles TypeScript code
+- `npm test`: Runs all tests
+- `npm run test:unit`: Runs only unit tests
+- `npm run test:integration`: Runs only integration tests
+- `npm run lint`: Checks code quality
+- `npm run lint:fix`: Automatically fixes code quality issues
 
-## Geliştirme Süreci
+## Development Process
 
-1. Yeni bir branch oluşturun:
-   - Özellik için: `git checkout -b feature/yeni-ozellik`
-   - Hata düzeltmesi için: `git checkout -b fix/hata-duzeltme`
-   - Dokümantasyon için: `git checkout -b docs/dokumantasyon-guncelleme`
+1. Create a new branch:
+   - For a feature: `git checkout -b feature/new-feature`
+   - For a bug fix: `git checkout -b fix/bug-fix`
+   - For documentation: `git checkout -b docs/documentation-update`
 
-2. Değişikliklerinizi yapın
+2. Make your changes
 
-3. Testleri çalıştırın: `npm test`
+3. Run tests: `npm test`
 
-4. Değişikliklerinizi commit edin:
-   - Özellik için: `git commit -m "feat: yeni özellik eklendi"`
-   - Hata düzeltmesi için: `git commit -m "fix: hata düzeltildi"`
-   - Dokümantasyon için: `git commit -m "docs: dokümantasyon güncellendi"`
+4. Commit your changes:
+   - For a feature: `git commit -m "feat: added new feature"`
+   - For a bug fix: `git commit -m "fix: fixed bug"`
+   - For documentation: `git commit -m "docs: updated documentation"`
 
-5. Branch'inizi push edin: `git push origin feature/yeni-ozellik`
+5. Push your branch: `git push origin feature/new-feature`
 
-6. Pull Request oluşturun
+6. Create a Pull Request
 
-### Commit Mesajları
+### Commit Messages
 
-Commit mesajlarınızı [Conventional Commits](https://www.conventionalcommits.org/) formatına uygun olarak yazın:
+Commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
 
 ```
 <type>[optional scope]: <description>
@@ -86,97 +86,97 @@ Commit mesajlarınızı [Conventional Commits](https://www.conventionalcommits.o
 [optional footer(s)]
 ```
 
-Yaygın tipler:
-- `feat`: Yeni bir özellik
-- `fix`: Bir hata düzeltmesi
-- `docs`: Sadece dokümantasyon değişiklikleri
-- `style`: Kod davranışını etkilemeyen değişiklikler (boşluk, biçimlendirme, vb.)
-- `refactor`: Hata düzeltmesi veya özellik eklemeyen kod değişiklikleri
-- `test`: Test ekleme veya düzeltme
-- `chore`: Yapılandırma, derleme süreci vb. değişiklikler
+Common types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Only documentation changes
+- `style`: Changes that do not affect code behavior (spaces, formatting, etc.)
+- `refactor`: Bug fix or feature addition without code changes
+- `test`: Test addition or correction
+- `chore`: Configuration, build process, etc. changes
 
-## Kod Standartları
+## Code Standards
 
-- TypeScript tip tanımlarını doğru şekilde kullanın
-- Tüm yeni özellikler için test ekleyin
-- Mevcut testleri geçtiğinden emin olun
-- Kodunuzu ESLint ve Prettier ile biçimlendirin
-- Açıklayıcı commit mesajları kullanın
-- Kodunuzu açıklayıcı yorumlarla belgelendirin (JSDoc formatında)
-- Karmaşık işlevler için açıklama ekleyin
+- Use TypeScript type definitions correctly
+- Add tests for all new features
+- Ensure existing tests pass
+- Format your code with ESLint and Prettier
+- Use descriptive commit messages
+- Comment your code with JSDoc (in JSDoc format)
+- Add comments for complex functions
 
-### Kod Stili
+### Code Style
 
-Bu proje ESLint ve Prettier kullanarak kod stilini standartlaştırır:
+This project uses ESLint and Prettier to standardize code style:
 
-- Girintiler için 2 boşluk kullanın
-- Satır sonlarında noktalı virgül kullanın
-- Maksimum satır uzunluğu 100 karakter
-- Tek tırnak yerine çift tırnak kullanın
-- Değişken isimleri için camelCase kullanın
-- Sınıf isimleri için PascalCase kullanın
-- Sabitler için UPPER_SNAKE_CASE kullanın
+- Use 2 spaces for indentation
+- Use semicolons at the end of lines
+- Maximum line length is 100 characters
+- Use double quotes instead of single quotes
+- Use camelCase for variable names
+- Use PascalCase for class names
+- Use UPPER_SNAKE_CASE for constants
 
-## Pull Request Süreci
+## Pull Request Process
 
-1. PR açmadan önce kodunuzu güncel `main` branch'i ile birleştirin
-2. PR açıklamasında değişikliklerinizi detaylı olarak açıklayın
-3. PR'ınızın CI testlerini geçtiğinden emin olun
-4. İnceleme geri bildirimlerini uygulayın
-5. PR'ınız onaylandıktan sonra, proje yöneticileri tarafından birleştirilecektir
+1. Before creating a PR, merge your code with the `main` branch
+2. Describe your changes in the PR description
+3. Ensure your PR passes CI tests
+4. Apply review feedback
+5. Your PR will be merged by project managers after approval
 
-### PR Şablonu
+### PR Template
 
-PR oluştururken [PR şablonunu](./PULL_REQUEST_TEMPLATE.md) kullanın ve tüm gerekli bilgileri doldurun.
+Use the [PR template](./PULL_REQUEST_TEMPLATE.md) when creating a PR and fill in all required information.
 
-## Test Yazma
+## Writing Tests
 
-- Birim testleri `__tests__/unit` dizinine ekleyin
-- Entegrasyon testleri `__tests__/integration` dizinine ekleyin
-- Test kapsamını en az %90 seviyesinde tutun
-- Her test dosyası için açıklayıcı isimler kullanın (örn. `netgsm.test.ts`)
-- Her test için açıklayıcı açıklamalar ekleyin
+- Add unit tests to the `__tests__/unit` directory
+- Add integration tests to the `__tests__/integration` directory
+- Keep test coverage at least 90%
+- Use descriptive names for all test files (e.g. `netgsm.test.ts`)
+- Add descriptive comments to all tests
 
-### Test Örnekleri
+### Test Examples
 
 ```typescript
 describe('Netgsm.sendSms', () => {
   it('should send SMS successfully', async () => {
-    // Test kodunuz
+    // Test code here
   });
 
   it('should handle API errors correctly', async () => {
-    // Test kodunuz
+    // Test code here
   });
 });
 ```
 
-## Dokümantasyon
+## Documentation
 
-- Tüm public API'ler için JSDoc yorumları ekleyin
-- README.md dosyasını güncel tutun
-- Yeni özellikler için kullanım örnekleri ekleyin
-- API değişiklikleri için CHANGELOG.md dosyasını güncelleyin
+- Add JSDoc comments for all public APIs
+- Keep README.md up-to-date
+- Add usage examples for new features
+- Update CHANGELOG.md for API changes
 
-## Sürüm Oluşturma
+## Creating Releases
 
-Sürüm oluşturma işlemi proje yöneticileri tarafından yapılır. Sürüm numaralandırması [Semantic Versioning](https://semver.org/) kurallarına göre yapılır:
+Release creation is done by project managers. Release numbering follows the [Semantic Versioning](https://semver.org/) rules:
 
-- MAJOR: Geriye dönük uyumsuz API değişiklikleri
-- MINOR: Geriye dönük uyumlu yeni özellikler
-- PATCH: Geriye dönük uyumlu hata düzeltmeleri
+- MAJOR: Backward-incompatible API changes
+- MINOR: Backward-compatible new features
+- PATCH: Backward-compatible bug fixes
 
-## Sorun Bildirme
+## Reporting Issues
 
-Bir hata veya özellik isteği bildirmek için:
+To report a bug or feature request:
 
-1. GitHub Issues bölümünü kullanın
-2. Uygun şablonu seçin (hata raporu veya özellik isteği)
-3. Tüm gerekli bilgileri sağlayın:
-   - Hata raporları için: Yeniden üretme adımları, beklenen davranış, gerçek davranış, ortam bilgileri
-   - Özellik istekleri için: Kullanım senaryosu, önerilen çözüm, alternatifler
-4. Mümkünse yeniden üretme adımları veya kod örnekleri ekleyin
+1. Use the GitHub Issues section
+2. Select the appropriate template (bug report or feature request)
+3. Provide all required information:
+   - For bug reports: Reproduction steps, expected behavior, actual behavior, environment information
+   - For feature requests: Usage scenario, recommended solution, alternatives
+4. If possible, add reproduction steps or code examples
 
-## Lisans
+## License
 
-Katkıda bulunarak, katkılarınızın projenin lisansı (MIT) altında lisanslanacağını kabul etmiş olursunuz. 
+By contributing, you agree that your contributions will be licensed under the project's license (MIT). 

@@ -21,6 +21,7 @@ Official Node.js client for the Netgsm SMS API. This package enables you to easi
 - [Contributing](#contributing)
 - [License](#license)
 - [Security](#security)
+- [Contact](#contact)
 
 ## Features
 
@@ -227,3 +228,12 @@ This project is licensed under the MIT license. See the [LICENSE](./LICENSE) fil
 ## Security
 
 For security vulnerabilities or concerns, please review the [SECURITY.md](./SECURITY.md) file and follow the specified steps.
+
+## Contact
+
+For technical support or questions about the SDK, please contact us at:
+
+- Email: [teknikdestek@netgsm.com.tr](mailto:teknikdestek@netgsm.com.tr)
+- Website: [https://www.netgsm.com.tr](https://www.netgsm.com.tr)
+
+We're here to help you integrate Netgsm SMS services into your applications successfully.

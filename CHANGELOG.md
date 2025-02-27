@@ -1,49 +1,43 @@
-# Değişiklik Günlüğü
+# Changelog
 
-Bu projede yapılan tüm önemli değişiklikler bu dosyada belgelenecektir.
+All notable changes to this project will be documented in this file.
 
-Format [Keep a Changelog](https://keepachangelog.com/tr-TR/1.0.0/) standardını takip etmektedir ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanmaktadır.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.1.2] - 2025-02-27
 
-### Eklendi
-- `checkBalance` metodu için `appkey` parametresi desteği
+### Added
+- Support for `appkey` parameter in `checkBalance` method
 
-### Düzeltildi
-- Entegrasyon testlerindeki sözdizimi hataları giderildi
+### Fixed
+- Syntax errors in integration tests
 
 ## [1.1.1] - 2025-02-27
 
-### Değiştirildi
-- Dokümantasyon iyileştirmeleri
-- Tip tanımları güncellendi
+### Changed
+- Documentation improvements
+- Updated type definitions
 
 ## [1.1.0] - 2025-02-26
 
-### Eklendi
-- REST v2 API desteği
-- `sendRestSms` metodu
-- `getReport` metodu
-- `getHeaders` metodu
-- `getInbox` metodu
-- `cancelSms` metodu
-- `checkBalance` metodu
+### Added
+- REST v2 API support
+- `sendRestSms` method
+- `getReport` method
+- `getHeaders` method
+- `getInbox` method
+- `cancelSms` method
+- `checkBalance` method
 
-### Değiştirildi
-- Hata işleme mekanizması iyileştirildi
-- TypeScript tip tanımları geliştirildi
+## [1.0.1] - 2025-02-25
 
-### Kullanımdan Kaldırıldı
-- `sendSms` metodu (yerine `sendRestSms` kullanın)
-- `fetchSmsReport` metodu (yerine `getReport` kullanın)
-- `queryHeaders` metodu (yerine `getHeaders` kullanın)
+### Fixed
+- Error handling in SMS sending
+- TypeScript type definitions
 
-## [1.0.0] - 2025-02-20
+## [1.0.0] - 2025-02-24
 
-### Eklendi
-- İlk kararlı sürüm
-- SMS gönderme desteği
-- SMS raporu sorgulama
-- Başlık sorgulama
-- Temel hata işleme
-- TypeScript desteği 
+### Added
+- Initial release
+- Basic SMS sending functionality
+- TypeScript support 

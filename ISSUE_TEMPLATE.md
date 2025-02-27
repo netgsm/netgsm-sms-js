@@ -1,41 +1,47 @@
-<!-- Lütfen aşağıdaki şablonu kullanarak sorununuzu açıklayın -->
+<!-- Please describe your issue using the template below -->
 
-## Sorun Türü
-<!-- Lütfen uygun olanı işaretleyin (x ile) -->
-- [ ] Hata Bildirimi
-- [ ] Özellik İsteği
-- [ ] Dokümantasyon İyileştirmesi
-- [ ] Soru
-- [ ] Diğer
+## Issue Type
+<!-- Please mark the appropriate option with an x -->
+- [ ] Bug Report
+- [ ] Feature Request
+- [ ] Documentation Improvement
+- [ ] Question
+- [ ] Other
 
-## Mevcut Davranış
-<!-- Eğer bir hata bildiriyorsanız, şu anda ne olduğunu açıklayın -->
-<!-- Eğer bir özellik öneriyorsanız, neden buna ihtiyaç duyduğunuzu açıklayın -->
+## Current Behavior
+<!-- If reporting a bug, describe what is currently happening -->
+<!-- If suggesting a feature, explain why this is needed -->
 
-## Beklenen Davranış
-<!-- Olmasını istediğiniz davranışı açıklayın -->
+## Expected Behavior
+<!-- Describe what you expected to happen -->
 
-## Yeniden Üretme Adımları
-<!-- Hatayı yeniden üretmek için adımlar (hata bildirimleri için) -->
+## Steps to Reproduce
+<!-- Steps to reproduce the issue (for bug reports) -->
 1. 
 2. 
 3. 
 4. 
 
-## Ortam Bilgileri
-- @netgsm/sms Sürümü: 
-- Node.js Sürümü: 
-- İşletim Sistemi: 
-- Diğer İlgili Bilgiler:
+## Environment Information
+- @netgsm/sms Version: 
+- Node.js Version: 
+- Operating System: 
+- Other Relevant Information:
 
-## Kod Örneği
-<!-- Sorunu gösteren kod örneği (mümkünse) -->
+## Additional Context
+<!-- Add any other context, screenshots, or code examples about the issue here -->
+
+## Possible Solution
+<!-- If you have suggestions on how to fix the issue or implement the feature -->
+
+## Code Example
+<!-- Code example demonstrating the issue (if applicable) -->
 ```javascript
-// Kod örneğinizi buraya ekleyin
+// Add your code example here
 ```
 
-## Ekran Görüntüleri
-<!-- Varsa ekran görüntüleri ekleyin -->
+## Screenshots
+<!-- Add screenshots if applicable -->
 
-## Ek Bilgiler
-<!-- Sorunla ilgili başka bilgiler ekleyin --> 
+## Additional Information
+<!-- Add any other information related to the issue --> 

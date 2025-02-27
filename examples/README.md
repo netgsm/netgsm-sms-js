@@ -1,14 +1,14 @@
-# @netgsm/sms Örnekleri
+# @netgsm/sms Examples
 
-Bu dizin, Netgsm SMS API'sini kullanmak için çeşitli örnekler içerir. Bu örnekler, API'nin temel ve gelişmiş özelliklerini nasıl kullanacağınızı göstermektedir.
+This directory contains various examples for using the Netgsm SMS API. These examples demonstrate how to use the basic and advanced features of the API.
 
-## Başlamadan Önce
+## Before You Begin
 
-Örnekleri çalıştırmadan önce, aşağıdaki adımları tamamladığınızdan emin olun:
+Before running the examples, make sure you complete the following steps:
 
-1. Netgsm hesabınızın olduğundan ve API erişiminizin etkinleştirildiğinden emin olun.
-2. Netgsm kullanıcı kodunuzu ve şifrenizi hazır bulundurun.
-3. Projeyi klonlayın ve bağımlılıkları yükleyin:
+1. Ensure you have a Netgsm account and API access is enabled.
+2. Have your Netgsm user code and password ready.
+3. Clone the project and install dependencies:
 
 ```bash
 git clone https://github.com/netgsm/netgsm-sms-js.git
@@ -16,77 +16,80 @@ cd netgsm-sms-js
 npm install
 ```
 
-## Temel Örnekler
+## Basic Examples
 
-### [Temel Kullanım](./basic-usage.js)
+### [Basic Usage](./basic-usage.js)
 
-Bu örnek, Netgsm SMS API'sinin temel kullanımını göstermektedir:
+This example demonstrates the basic usage of the Netgsm SMS API:
 
-- SMS gönderme
-- SMS raporlarını sorgulama
-- Mesaj başlıklarını listeleme
-- Bakiye sorgulama
+- Sending SMS
+- Querying SMS reports
+- Listing message headers
+- Checking balance
 
-Örneği çalıştırmak için:
+To run the example:
 
 ```bash
 node examples/basic-usage.js
 ```
 
-## Gelişmiş Örnekler
+## Advanced Examples
 
-### [Zamanlanmış SMS](./advanced/scheduled-sms.js)
+### [Bulk SMS](./advanced/bulk-sms.js)
 
-Bu örnek, belirli bir tarih ve saatte gönderilecek SMS'lerin nasıl ayarlanacağını gösterir:
+This example demonstrates how to send different messages to multiple recipients in a single request:
 
-- Zamanlanmış SMS gönderme
-- Zamanlanmış SMS'leri iptal etme
-- Zamanlanmış SMS durumunu sorgulama
+- Creating message packages
+- Sending bulk SMS
+- Handling responses
 
-Örneği çalıştırmak için:
-
-```bash
-node examples/advanced/scheduled-sms.js
-```
-
-### [Toplu SMS](./advanced/bulk-sms.js)
-
-Bu örnek, farklı alıcılara farklı mesajlar göndermeyi gösterir:
-
-- Doğrudan liste ile toplu SMS gönderme
-- CSV dosyasından toplu SMS gönderme
-- Toplu SMS raporlarını sorgulama ve istatistikleri hesaplama
-
-Örneği çalıştırmak için:
+To run the example:
 
 ```bash
 node examples/advanced/bulk-sms.js
 ```
 
-### [Ek Örnekler](./advanced/additional-examples.js)
+### [Scheduled SMS](./advanced/scheduled-sms.js)
 
-Bu örnek, Netgsm SMS API'sinin çeşitli kullanım senaryolarını göstermektedir:
+This example demonstrates how to schedule SMS messages for future delivery:
 
-- İleri tarihli mesaj gönderimi (ddMMyyyyHHmm formatında)
-- Birden fazla numaraya gönderim
-- Son tarihli SMS gönderimi (startdate ve stopdate ile)
-- Türkçe karakter desteği ile gönderim
-- İYS filtreli gönderim (Ticari içerikli bireysel, ticari içerikli tacir ve bilgilendirme amaçlı)
+- Setting delivery date and time
+- Canceling scheduled messages
+- Checking delivery status
 
-Örneği çalıştırmak için:
+To run the example:
 
 ```bash
-node examples/advanced/additional-examples.js
+node examples/advanced/scheduled-sms.js
 ```
 
-## Örnekleri Özelleştirme
+### [Error Handling](./advanced/error-handling.js)
 
-Her örnek dosyasında, aşağıdaki bilgileri kendi bilgilerinizle değiştirmeniz gerekmektedir:
+This example demonstrates proper error handling techniques:
 
-```javascript
-const netgsm = new Netgsm({
-  usercode: 'KULLANICI_KODUNUZ',
-  password: 'PAROLANIZ',
-  appName: 'UYGULAMA_ADINIZ' // İsteğe bağlı
-});
+- Handling API errors
+- Retry mechanisms
+- Logging errors
+
+To run the example:
+
+```bash
+node examples/advanced/error-handling.js
 ```
+
+## Configuration
+
+All examples use environment variables for configuration. Create a `.env` file in the project root with the following variables:
+
+```
+NETGSM_USERCODE=your_usercode
+NETGSM_PASSWORD=your_password
+NETGSM_MESSAGE_HEADER=your_header
+TEST_PHONE_NUMBER=905xxxxxxxxx
+```
+
+## Additional Resources
+
+- [API Documentation](../docs/README.md)
+- [Netgsm Developer Portal](https://www.netgsm.com.tr/dokuman)
+- [TypeScript Definitions](../src/types.ts)
