@@ -1,0 +1,14 @@
+{
+  "entryPoints": ["src/index.ts", "src/enums.ts"],
+  "out": "docs",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "includeVersion": true,
+  "categorizeByGroup": true,
+  "categoryOrder": ["Core", "Types", "Enums", "*"],
+  "readme": "README.md",
+  "name": "@netgsm/sms API Dokümantasyonu",
+  "theme": "default",
+  "githubPages": true
+} 

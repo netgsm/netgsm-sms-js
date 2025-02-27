@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "module": "CommonJS", // CommonJS modülü oluştur
+      "outDir": "dist/cjs", // CommonJS dosyaları için çıkış klasörü
+      "declaration": true, // TypeScript tanımlama dosyaları
+      "target": "ES6"
+    }
+  }
+  

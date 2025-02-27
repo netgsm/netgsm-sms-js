@@ -1,0 +1,32 @@
+# Node.js modules
+node_modules/
+
+# Source files
+src/
+
+# Test and coverage files
+__test__/
+__tests__/
+*.test.js
+*.test.ts
+coverage/
+.nyc_output/
+jest.config.js
+
+# Environment files
+.env
+.env.example
+
+# Git files
+.git/
+.gitignore
+
+# Config files
+tsconfig.json
+package-lock.json
+
+# Development dependencies
+devDependencies
+package-lock.json
+yarn.lock
+.npmrc

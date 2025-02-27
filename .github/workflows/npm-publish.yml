@@ -1,0 +1,91 @@
+name: Publish Package to NPM
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (patch, minor, major, or specific version)'
+        required: true
+        default: 'patch'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist/
+
+  version-and-publish:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          registry-url: https://registry.npmjs.org/
+      
+      - run: npm ci
+      
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist/
+      
+      - name: Version and publish (from release)
+        if: github.event_name == 'release'
+        run: |
+          echo "Publishing version from release tag"
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+      
+      - name: Version and publish (from workflow dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Versioning package as ${{ github.event.inputs.version }}"
+          npm version ${{ github.event.inputs.version }} -m "Bump version to %s [skip ci]"
+          npm publish --access public
+          git push --follow-tags
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+      
+      - name: Update CHANGELOG.md
+        run: |
+          if [ -f "CHANGELOG.md" ]; then
+            VERSION=$(node -p "require('./package.json').version")
+            DATE=$(date +%Y-%m-%d)
+            echo "## $VERSION ($DATE)" > CHANGELOG.tmp
+            echo "" >> CHANGELOG.tmp
+            git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s" | grep -v "Merge" | grep -v "Bump version" >> CHANGELOG.tmp
+            echo "" >> CHANGELOG.tmp
+            echo "" >> CHANGELOG.tmp
+            cat CHANGELOG.md >> CHANGELOG.tmp
+            mv CHANGELOG.tmp CHANGELOG.md
+            git add CHANGELOG.md
+            git commit -m "Update CHANGELOG.md for version $VERSION [skip ci]"
+            git push
+          fi 

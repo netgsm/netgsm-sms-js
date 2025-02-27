@@ -1,0 +1,592 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "NETGSM SMS API",
+    "description": "Netgsm API for SMS operations",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.netgsm.com.tr",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "BULK SMS",
+      "description": "Bulk SMS sending and cancellation operations"
+    },
+    {
+      "name": "QUERIES",
+      "description": "Operations for inbox messages, SMS headers and SMS reports"
+    }
+  ],
+  "paths": {
+    "/sms/rest/v2/send": {
+      "post": {
+        "tags": ["BULK SMS"],
+        "summary": "Send REST SMS",
+        "description": "Send SMS via REST protocol",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestSendRequest" 
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sms/rest/v2/cancel": {
+      "post": {
+        "tags": ["BULK SMS"],
+        "summary": "Cancel SMS",
+        "description": "Cancel a scheduled SMS",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Operation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sms/rest/v2/msgheader": {
+      "get": {
+        "tags": ["QUERIES"],
+        "summary": "Get SMS Headers",
+        "description": "Get user's SMS headers",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/appname"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MsgHeaderResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Operation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MsgHeaderErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sms/rest/v2/inbox": {
+      "get": {
+        "tags": ["QUERIES"],
+        "summary": "Get Inbox Messages",
+        "description": "List SMS messages received by your subscriber number",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/appname"
+          },
+          {
+            "name": "startdate",
+            "in": "query",
+            "description": "Start date (e.g., ddMMyyyyHHmmss)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{14}$"
+            }
+          },
+          {
+            "name": "stopdate",
+            "in": "query",
+            "description": "End date (e.g., ddMMyyyyHHmmss)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{14}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsInboxResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Operation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MsgHeaderErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sms/rest/v2/report": {
+      "post": {
+        "tags": ["QUERIES"],
+        "summary": "Get SMS Report",
+        "description": "Get delivery status report for sent SMS messages",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "Operation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "appname": {
+        "name": "appname",
+        "in": "query",
+        "description": "Application name",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "BaseRequest": {
+        "type": "object",
+        "properties": {
+          "appname": {
+            "type": "string",
+            "description": "Application name"
+          }
+        }
+      },
+      "BaseResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Operation result code"
+          },
+          "description": {
+            "type": "string",
+            "description": "Operation result description"
+          }
+        },
+        "required": ["code", "description"]
+      },
+      "RestResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "jobid": {
+                "type": "string",
+                "description": "SMS sending operation ID"
+              }
+            }
+          }
+        ]
+      },
+      "ReportResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "jobs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "jobid": {
+                      "type": "string",
+                      "description": "SMS ID"
+                    },
+                    "number": {
+                      "type": "string",
+                      "description": "Recipient phone number"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "description": "SMS status"
+                    },
+                    "operator": {
+                      "type": "integer",
+                      "description": "Operator code"
+                    },
+                    "msglen": {
+                      "type": "integer",
+                      "description": "Message length"
+                    },
+                    "deliveredDate": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Delivery date"
+                    },
+                    "errorCode": {
+                      "type": "integer",
+                      "description": "Error code"
+                    },
+                    "referansID": {
+                      "type": "string",
+                      "description": "Reference ID"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ErrorResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "jobs": {
+                "type": "null",
+                "description": "Empty report list"
+              }
+            }
+          }
+        ]
+      },
+      "RestSendRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseRequest"
+          },
+          {
+            "type": "object",
+            "required": ["msgheader", "messages"],
+            "properties": {
+              "encoding": {
+                "type": "string",
+                "description": "Message encoding"
+              },
+              "iysfilter": {
+                "type": "string",
+                "description": "IYS filter"
+              },
+              "partnercode": {
+                "type": "string",
+                "description": "Partner code"
+              },
+              "msgheader": {
+                "type": "string",
+                "maxLength": 11,
+                "description": "Message header/sender ID"
+              },
+              "messages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "msg": {
+                      "type": "string",
+                      "description": "Message content"
+                    },
+                    "no": {
+                      "type": "string",
+                      "pattern": "^[0-9]{10}$",
+                      "description": "Recipient phone number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "CancelRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseRequest"
+          },
+          {
+            "type": "object",
+            "required": ["jobid"],
+            "properties": {
+              "jobid": {
+                "type": "string",
+                "description": "Job ID of the SMS to cancel"
+              }
+            }
+          }
+        ]
+      },
+      "CancelResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "jobid": {
+                "type": "string",
+                "description": "Job ID of the cancelled SMS"
+              }
+            }
+          }
+        ]
+      },
+      "CancelErrorResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "jobid": {
+                "type": "string",
+                "description": "Job ID of the SMS that failed to cancel"
+              }
+            }
+          }
+        ]
+      },
+      "MsgHeaderRequest": {
+        "type": "object",
+        "required": ["appname"],
+        "properties": {
+          "appname": {
+            "type": "string",
+            "description": "Application name"
+          }
+        }
+      },
+      "MsgHeaderResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "msgheaders": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of SMS headers"
+              }
+            }
+          }
+        ]
+      },
+      "MsgHeaderErrorResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "msgheaders": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Null in case of error"
+              }
+            }
+          }
+        ]
+      },
+      "SmsInboxResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "properties": {
+              "messages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "SMS message content"
+                    },
+                    "sender": {
+                      "type": "string",
+                      "description": "Sender number"
+                    },
+                    "receiver": {
+                      "type": "string",
+                      "description": "Recipient number"
+                    },
+                    "datetime": {
+                      "type": "string",
+                      "description": "Send date and time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ReportRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseRequest"
+          },
+          {
+            "type": "object",
+            "required": ["startdate", "stopdate"],
+            "properties": {
+              "jobids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Message IDs to query"
+              },
+              "startdate": {
+                "type": "string",
+                "format": "date-time",
+                "example": "dd.MM.yyyy HH:mm:ss",
+                "description": "Start date"
+              },
+              "stopdate": {
+                "type": "string",
+                "format": "date-time",
+                "example": "dd.MM.yyyy HH:mm:ss",
+                "description": "End date"
+              },
+              "pagenumber": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Page number (starts from 0)"
+              },
+              "pagesize": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Records per page"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    }
+  }
+} 
