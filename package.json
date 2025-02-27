@@ -76,7 +76,7 @@
     "build": "tsc --project tsconfig.json",
     "build:esm": "tsc --project tsconfig.json --module es2020 --outDir dist/esm && node scripts/create-esm-package.js",
     "build:all": "npm run build && npm run build:esm",
-    "test": "jest --coverage --verbose",
+    "test": "jest --coverage --verbose --testPathIgnorePatterns=__tests__/integration/",
     "test:unit": "jest --coverage --verbose --testPathPattern=__tests__/unit",
     "test:integration": "jest --coverage --verbose --testPathPattern=__tests__/integration",
     "test:watch": "jest --watch",
