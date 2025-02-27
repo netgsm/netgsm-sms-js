@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@netgsm/sms.svg)](https://www.npmjs.com/package/@netgsm/sms)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js CI](https://github.com/netgsm/netgsm-sms-js/actions/workflows/node.js.yml/badge.svg)](https://github.com/netgsm/netgsm-sms-js/actions/workflows/node.js.yml)
+[![Node.js CI](https://github.com/netgsm/netgsm-sms-js/actions/workflows/ci.yml/badge.svg)](https://github.com/netgsm/netgsm-sms-js/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-4.9%2B-blue)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 [![Downloads](https://img.shields.io/npm/dm/@netgsm/sms.svg)](https://www.npmjs.com/package/@netgsm/sms)
