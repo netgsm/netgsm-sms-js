@@ -22,8 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18.x'
-          cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - name: Audit dependencies
         run: npm audit --audit-level=high || echo "Security vulnerabilities found, but continuing workflow"
         
@@ -35,7 +34,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18.x'
-          cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - name: Check outdated dependencies
         run: npm outdated || true 
