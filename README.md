@@ -63,7 +63,7 @@ const { Netgsm, SmsStatus, BalanceType } = require('@netgsm/sms');
 
 // Configure Netgsm client
 const netgsm = new Netgsm({
-  usercode: 'YOUR_USER_CODE',
+  userCode: 'YOUR_USER_CODE',
   password: 'YOUR_PASSWORD',
   appName: 'YOUR_APP_NAME' // Optional
 });
@@ -100,7 +100,7 @@ import { Netgsm, SmsStatus, BalanceType } from '@netgsm/sms';
 
 // Configure Netgsm client
 const netgsm = new Netgsm({
-  usercode: 'YOUR_USER_CODE',
+  userCode: 'YOUR_USER_CODE',
   password: 'YOUR_PASSWORD',
   appName: 'YOUR_APP_NAME' // Optional
 });
@@ -135,7 +135,7 @@ For more examples, check the [examples](./examples) directory:
 
 ```javascript
 const netgsm = new Netgsm({
-  usercode: 'YOUR_USER_CODE', // Required
+  userCode: 'YOUR_USER_CODE', // Required
   password: 'YOUR_PASSWORD',  // Required
   appName: 'YOUR_APP_NAME'    // Optional
 });
