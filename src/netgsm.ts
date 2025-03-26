@@ -6,7 +6,6 @@
 import { ApiErrorCode } from "./enums";
 import {
   NetgsmConfig,
-  ApiResponse,
   ReportPayload,
   ReportResponse,
   HeaderQueryResponse,
@@ -19,16 +18,6 @@ import {
   SmsInboxPayload,
   RestSmsPayload,
   RestSmsResponse,
-  BalanceType,
-  ReportType,
-  SmsStatus,
-  CreditResponse,
-  PackageResponse,
-  SendSmsResponse,
-  SendSmsRequest,
-  ReportRequest,
-  InboxRequest,
-  InboxResponse
 } from "./types";
 
 /**

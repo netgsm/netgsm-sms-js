@@ -1,7 +1,7 @@
-import Netgsm from '../../src/netgsm';
-import { config } from 'dotenv';
+import { config } from "dotenv";
 
-import { SmsStatus, ReportType, BalanceType } from "../../src/enums";
+import { BalanceType, SmsStatus } from "../../src/enums";
+import Netgsm from "../../src/netgsm";
 
 config();
 

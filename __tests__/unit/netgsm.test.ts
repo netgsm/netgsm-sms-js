@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import fetchMock from "jest-fetch-mock";
 
-import { ApiErrorCode, ReportType, SmsStatus, BalanceType, OperatorCode } from "../../src/enums";
+import { ApiErrorCode, BalanceType, OperatorCode } from "../../src/enums";
 import Netgsm from "../../src/netgsm";
 
 fetchMock.enableMocks();
