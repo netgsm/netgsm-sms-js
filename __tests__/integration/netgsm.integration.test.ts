@@ -1,9 +1,9 @@
-import dotenv from "dotenv";
+import Netgsm from '../../src/netgsm';
+import { config } from 'dotenv';
 
 import { SmsStatus, ReportType, BalanceType } from "../../src/enums";
-import Netgsm from "../../src/netgsm";
 
-dotenv.config();
+config();
 
 describe("Netgsm Integration Tests", () => {
   let netgsm: Netgsm;

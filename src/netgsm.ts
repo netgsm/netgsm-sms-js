@@ -19,6 +19,16 @@ import {
   SmsInboxPayload,
   RestSmsPayload,
   RestSmsResponse,
+  BalanceType,
+  ReportType,
+  SmsStatus,
+  CreditResponse,
+  PackageResponse,
+  SendSmsResponse,
+  SendSmsRequest,
+  ReportRequest,
+  InboxRequest,
+  InboxResponse
 } from "./types";
 
 /**
