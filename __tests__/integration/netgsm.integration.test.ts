@@ -11,14 +11,14 @@ describe("Netgsm Integration Tests", () => {
   let instantSmsJobId: string;
 
   beforeAll(() => {
-    if (!process.env.NETGSM_USERCODE || !process.env.NETGSM_PASSWORD) {
+    if (!process.env.NETGSM_USERNAME || !process.env.NETGSM_PASSWORD) {
       throw new Error("Missing required environment variables");
     }
 
     netgsm = new Netgsm({
-      userCode: process.env.NETGSM_USERCODE,
+      username: process.env.NETGSM_USERNAME,
       password: process.env.NETGSM_PASSWORD,
-      appName: "netgsm-test",
+      appname: "netgsm-test",
     });
   });
 
@@ -150,18 +150,15 @@ describe("Netgsm Integration Tests", () => {
 
     const reportPayload = {
       bulkIds: [instantSmsJobId],
-      type: ReportType.SINGLE_BULKID,
-      status: SmsStatus.ALL,
-      version: 2,
-      startDate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
-      stopDate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+      startdate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+      stopdate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
     };
 
-    const report = await netgsm.fetchSmsReport(reportPayload);
-    expect(report.response?.job).toBeDefined();
+    const report = await netgsm.getReport(reportPayload);
+    expect(report.jobs).toBeDefined();
 
-    if (report.response?.job && report.response.job.length > 0) {
-      const smsStatus = report.response.job[0].status;
+    if (report.jobs && report.jobs.length > 0) {
+      const smsStatus = report.jobs[0].status;
       // eslint-disable-next-line no-console
       console.log(`SMS durumu: ${smsStatus} (${SmsStatus[smsStatus]})`);
     } else {
@@ -183,8 +180,8 @@ describe("Netgsm Integration Tests", () => {
     };
 
     const inboxPayload = {
-      startDate: formatDate(oneMonthAgo),
-      endDate: formatDate(today),
+      startdate: formatDate(oneMonthAgo),
+      stopdate: formatDate(today),
     };
 
     try {

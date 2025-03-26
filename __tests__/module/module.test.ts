@@ -4,7 +4,7 @@ describe("Module System Compatibility", () => {
     expect(Netgsm).toBeDefined();
 
     const instance = new Netgsm({
-      userCode: "test",
+      username: "test",
       password: "test",
     });
     expect(instance).toBeInstanceOf(Netgsm);

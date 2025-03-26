@@ -12,89 +12,8 @@ describe("Netgsm Unit Tests", () => {
   beforeEach(() => {
     fetchMock.resetMocks();
     netgsm = new Netgsm({
-      userCode: "test-user",
+      username: "test-user",
       password: "test-pass",
-    });
-  });
-
-  describe("sendSms", () => {
-    const validPayload = {
-      msgHeader: "TEST",
-      messages: [
-        {
-          message: "Test message",
-          phone: "5551234567",
-        },
-      ],
-    };
-
-    it("should send SMS successfully", async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          code: ApiErrorCode.SUCCESS,
-          jobid: "12345",
-          description: "Success",
-        })
-      );
-
-      const response = await netgsm.sendSms(validPayload);
-
-      expect(response).toEqual({
-        code: ApiErrorCode.SUCCESS,
-        jobid: "12345",
-        description: "Success",
-      });
-    });
-
-    it("should send multiple SMS successfully", async () => {
-      const multipleMessages = {
-        msgHeader: "TEST",
-        messages: [
-          { message: "Test message 1", phone: "5551234567" },
-          { message: "Test message 2", phone: "5557654321" },
-        ],
-      };
-
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          code: ApiErrorCode.SUCCESS,
-          jobid: "12345,12346",
-          description: "Success",
-        })
-      );
-
-      const response = await netgsm.sendSms(multipleMessages);
-      expect(response.jobid).toBe("12345,12346");
-    });
-
-    it("should handle API errors with status code", async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          code: ApiErrorCode.INVALID_HEADER,
-          jobid: null,
-          description: "Check the msgheader parameter",
-        }),
-        {
-          status: 406,
-          statusText: "Not Acceptable",
-          headers: {
-            "content-type": "application/json;charset=UTF-8",
-          },
-        }
-      );
-
-      await expect(netgsm.sendSms(validPayload)).rejects.toEqual({
-        status: 406,
-        code: ApiErrorCode.INVALID_HEADER,
-        jobid: null,
-        description: "Check the msgheader parameter",
-      });
-    });
-
-    it("should handle network errors", async () => {
-      fetchMock.mockReject(new Error("Network error"));
-
-      await expect(netgsm.sendSms(validPayload)).rejects.toThrow("Network error");
     });
   });
 
@@ -223,101 +142,11 @@ describe("Netgsm Unit Tests", () => {
     });
   });
 
-  describe("fetchSmsReport", () => {
-    const validPayload = {
-      bulkIds: ["12345"],
-      type: ReportType.SINGLE_BULKID,
-      status: SmsStatus.PENDING,
-      version: 2,
-      startDate: "01012024",
-      stopDate: "31012024",
-    };
-
-    it("should fetch report successfully", async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          response: {
-            job: [
-              {
-                jobid: "12345",
-                status: SmsStatus.PENDING,
-                telno: "5551234567",
-              },
-            ],
-          },
-        })
-      );
-
-      const response = await netgsm.fetchSmsReport(validPayload);
-      expect(response.response?.job).toBeDefined();
-      expect(response.response?.job?.[0].status).toBe(SmsStatus.PENDING);
-    });
-
-    it("should fetch multiple reports successfully", async () => {
-      const multipleReports = {
-        ...validPayload,
-        bulkIds: ["12345", "12346"],
-      };
-
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          response: {
-            job: [
-              { jobid: "12345", status: SmsStatus.PENDING, telno: "5551234567" },
-              { jobid: "12346", status: SmsStatus.SENT, telno: "5557654321" },
-            ],
-          },
-        })
-      );
-
-      const response = await netgsm.fetchSmsReport(multipleReports);
-      expect(response.response?.job?.length).toBe(2);
-      expect(response.response?.job?.[1].status).toBe(SmsStatus.SENT);
-    });
-
-    it("should handle empty report response", async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          response: {
-            job: [],
-          },
-        })
-      );
-
-      const response = await netgsm.fetchSmsReport(validPayload);
-      expect(response.response?.job?.length).toBe(0);
-    });
-
-    it("should handle report API errors with status code", async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          code: ApiErrorCode.INVALID_DATE,
-          jobid: null,
-          description: "Invalid date format",
-        }),
-        {
-          status: 406,
-          statusText: "Not Acceptable",
-          headers: {
-            "content-type": "application/json;charset=UTF-8",
-          },
-        }
-      );
-
-      await expect(netgsm.fetchSmsReport(validPayload)).rejects.toEqual({
-        status: 406,
-        code: ApiErrorCode.INVALID_DATE,
-        jobid: null,
-        description: "Invalid date format",
-      });
-    });
-  });
-
   describe("getReport", () => {
     const validPayload = {
       bulkIds: ["12345"],
-      startDate: "01.01.2023 00:00:00",
-      stopDate: "31.01.2023 23:59:59",
+      startdate: "01.01.2023 00:00:00",
+      stopdate: "31.01.2023 23:59:59",
       pageNumber: 0,
       pageSize: 10,
     };
@@ -405,53 +234,53 @@ describe("Netgsm Unit Tests", () => {
     });
   });
 
-  describe("queryHeaders", () => {
+  describe("getHeaders", () => {
     it("should fetch headers successfully", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          msgheader: ["3129111740", "O.YURTSEVEN"],
+          msgheaders: ["HEADER1", "HEADER2"],
         })
       );
 
-      const response = await netgsm.queryHeaders({ appName: "test-app" });
-      expect(response.msgheader).toBeDefined();
-      expect(response.msgheader?.length).toBe(2);
-      expect(response.msgheader?.[0]).toBe("3129111740");
+      const response = await netgsm.getHeaders({ appname: "test-app" });
+      expect(response.msgheaders).toBeDefined();
+      expect(response.msgheaders?.length).toBe(2);
+      expect(response.msgheaders?.[0]).toBe("HEADER1");
     });
 
     it("should fetch multiple headers successfully", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          msgheader: ["3129111740", "O.YURTSEVEN", "TEST_HEADER"],
+          msgheaders: ["HEADER1", "HEADER2", "HEADER3"],
         })
       );
 
-      const response = await netgsm.queryHeaders();
-      expect(response.msgheader?.length).toBe(3);
-      expect(response.msgheader?.[1]).toBe("O.YURTSEVEN");
+      const response = await netgsm.getHeaders();
+      expect(response.msgheaders?.length).toBe(3);
+      expect(response.msgheaders?.[1]).toBe("HEADER2");
     });
 
-    it("should fetch headers without appName", async () => {
+    it("should fetch headers without appname", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          msgheader: ["3129111740"],
+          msgheaders: ["HEADER1"],
         })
       );
 
-      const response = await netgsm.queryHeaders();
-      expect(response.msgheader).toBeDefined();
-      expect(response.msgheader?.[0]).toBe("3129111740");
+      const response = await netgsm.getHeaders();
+      expect(response.msgheaders).toBeDefined();
+      expect(response.msgheaders?.[0]).toBe("HEADER1");
     });
 
     it("should handle empty header response", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          msgheader: [],
+          msgheaders: [],
         })
       );
 
-      const response = await netgsm.queryHeaders();
-      expect(response.msgheader?.length).toBe(0);
+      const response = await netgsm.getHeaders();
+      expect(response.msgheaders?.length).toBe(0);
     });
 
     it("should handle header query API errors", async () => {
@@ -469,75 +298,9 @@ describe("Netgsm Unit Tests", () => {
         }
       );
 
-      await expect(netgsm.queryHeaders()).rejects.toEqual({
-        status: 406,
-        code: ApiErrorCode.INVALID_AUTH,
-        description: "Invalid authentication",
-      });
-    });
-  });
-
-  describe("getHeaders", () => {
-    it("should fetch headers successfully using REST v2 API", async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          code: "00",
-          description: "Success",
-          msgheaders: ["3129111740", "O.YURTSEVEN"],
-        })
-      );
-
-      const response = await netgsm.getHeaders({ appName: "test-app" });
-      expect(response.msgheaders).toBeDefined();
-      expect(response.msgheaders?.length).toBe(2);
-      expect(response.msgheaders?.[0]).toBe("3129111740");
-    });
-
-    it("should fetch multiple headers successfully using REST v2 API", async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          code: "00",
-          description: "Success",
-          msgheaders: ["3129111740", "O.YURTSEVEN", "TEST_HEADER"],
-        })
-      );
-
-      const response = await netgsm.getHeaders();
-      expect(response.msgheaders?.length).toBe(3);
-      expect(response.msgheaders?.[1]).toBe("O.YURTSEVEN");
-    });
-
-    it("should handle empty header response using REST v2 API", async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          code: "00",
-          description: "Success",
-          msgheaders: [],
-        })
-      );
-
-      const response = await netgsm.getHeaders();
-      expect(response.msgheaders?.length).toBe(0);
-    });
-
-    it("should handle header query API errors using REST v2 API", async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({
-          code: "30",
-          description: "Invalid authentication",
-        }),
-        {
-          status: 406,
-          statusText: "Not Acceptable",
-          headers: {
-            "content-type": "application/json;charset=UTF-8",
-          },
-        }
-      );
-
       await expect(netgsm.getHeaders()).rejects.toEqual({
         status: 406,
-        code: "30",
+        code: ApiErrorCode.INVALID_AUTH,
         description: "Invalid authentication",
       });
     });
@@ -561,8 +324,8 @@ describe("Netgsm Unit Tests", () => {
       );
 
       const response = await netgsm.getInbox({
-        startDate: "01012023000000",
-        stopDate: "31012023235959",
+        startdate: "01012023000000",
+        stopdate: "31012023235959",
       });
 
       expect(response.messages).toBeDefined();
@@ -594,8 +357,8 @@ describe("Netgsm Unit Tests", () => {
       );
 
       const response = await netgsm.getInbox({
-        startDate: "01012023000000",
-        stopDate: "31012023235959",
+        startdate: "01012023000000",
+        stopdate: "31012023235959",
       });
 
       expect(response.messages?.length).toBe(2);
@@ -613,8 +376,8 @@ describe("Netgsm Unit Tests", () => {
       );
 
       const response = await netgsm.getInbox({
-        startDate: "01012023000000",
-        stopDate: "31012023235959",
+        startdate: "01012023000000",
+        stopdate: "31012023235959",
       });
 
       expect(response.messages?.length).toBe(0);
@@ -637,8 +400,8 @@ describe("Netgsm Unit Tests", () => {
 
       await expect(
         netgsm.getInbox({
-          startDate: "invalid-date",
-          stopDate: "31012023235959",
+          startdate: "invalid-date",
+          stopdate: "31012023235959",
         })
       ).rejects.toEqual({
         status: 406,

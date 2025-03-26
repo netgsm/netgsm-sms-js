@@ -14,9 +14,9 @@ const { Netgsm } = require('@netgsm/sms');
 // Netgsm istemcisini yapılandırma
 // Gerçek kullanımda kendi bilgilerinizi girin
 const netgsm = new Netgsm({
-  usercode: 'KULLANICI_KODUNUZ',
+  username: 'KULLANICI_KODUNUZ',
   password: 'PAROLANIZ',
-  appName: 'UYGULAMA_ADINIZ' // İsteğe bağlı
+  appname: 'UYGULAMA_ADINIZ' // İsteğe bağlı
 });
 
 /**

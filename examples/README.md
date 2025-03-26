@@ -82,7 +82,7 @@ node examples/advanced/error-handling.js
 All examples use environment variables for configuration. Create a `.env` file in the project root with the following variables:
 
 ```
-NETGSM_USERCODE=your_usercode
+NETGSM_USERNAMEyour_username
 NETGSM_PASSWORD=your_password
 NETGSM_MESSAGE_HEADER=your_header
 TEST_PHONE_NUMBER=905xxxxxxxxx
@@ -91,5 +91,4 @@ TEST_PHONE_NUMBER=905xxxxxxxxx
 ## Additional Resources
 
 - [API Documentation](../docs/README.md)
-- [Netgsm Developer Portal](https://www.netgsm.com.tr/dokuman)
 - [TypeScript Definitions](../src/types.ts)

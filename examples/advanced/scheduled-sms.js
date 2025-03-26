@@ -10,9 +10,9 @@ const { Netgsm, Enums } = require('@netgsm/sms');
 // Netgsm istemcisini yapılandırma
 // Gerçek kullanımda kendi bilgilerinizi girin
 const netgsm = new Netgsm({
-  usercode: 'KULLANICI_KODUNUZ',
+  username: 'KULLANICI_KODUNUZ',
   password: 'PAROLANIZ',
-  appName: 'UYGULAMA_ADINIZ' // İsteğe bağlı
+  appname: 'UYGULAMA_ADINIZ' // İsteğe bağlı
 });
 
 /**
@@ -58,7 +58,7 @@ async function cancelScheduledSms(jobId) {
     console.log(`${jobId} numaralı zamanlanmış SMS iptal ediliyor...`);
     
     const response = await netgsm.cancelScheduledSms({
-      jobId: jobId
+      jobid: jobId
     });
     
     console.log('Zamanlanmış SMS iptal edildi:', response);
@@ -152,4 +152,4 @@ module.exports = {
   checkScheduledSmsStatus,
   formatDateForNetgsm,
   runScheduledSmsExample
-}; 
+};

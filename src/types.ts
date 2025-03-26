@@ -1,35 +1,29 @@
 import { ApiErrorCode, SmsStatus, ReportType, BalanceType } from "./enums";
 
 /**
- * Configuration object for Netgsm API authentication.
+ * @module Types
+ * @description Type definitions for Netgsm API
+ */
+
+/**
+ * Configuration interface for Netgsm client
  */
 export interface NetgsmConfig {
-  userCode: string; // Netgsm API user code
-  password: string; // Netgsm API password
-  appName?: string; // Optional application name
+  /** Netgsm API username */
+  username: string;
+  /** Netgsm API password */
+  password: string;
+  /** Optional application name for tracking */
+  appname?: string;
 }
 
 /**
- * Base payload structure for common fields used in API requests.
+ * Base payload interface for API requests
  */
 export interface BasePayload {
-  appName?: string; // Optional application key
-  startDate?: string; // Start date (mapped to 'bastar' in the API)
-  stopDate?: string; // End date (mapped to 'bittar' in the API)
-}
-
-/**
- * Payload for sending SMS via Netgsm API.
- */
-export interface SmsPayload extends BasePayload {
-  msgHeader: string; // Sender header (e.g., "MyBrand")
-  iysFilter?: string; // Message Management System filter
-  partnerCode?: string; // Partner code
-  encoding?: string; // Message encoding type (e.g., "TR")
-  messages: {
-    message: string; // SMS content
-    phone: string; // Recipient's phone number
-  }[]; // Array of messages with their content and recipient details
+  startdate?: string; // Start date (format: ddMMyyyyHHmmss)
+  stopdate?: string; // End date (format: ddMMyyyyHHmmss)
+  appname?: string; // Optional application key
 }
 
 /**
@@ -124,7 +118,7 @@ export interface ReportResponse {
  * Payload for querying sender IDs/headers
  */
 export interface HeaderQueryPayload {
-  appName?: string; // Optional application key
+  appname?: string; // Optional application key
 }
 
 /**
@@ -158,9 +152,9 @@ export interface CancelSmsResponse {
  * Payload for querying inbox messages
  */
 export interface SmsInboxPayload {
-  appName?: string; // Optional application key
-  startDate?: string; // Start date (format: ddMMyyyyHHmmss)
-  stopDate?: string; // End date (format: ddMMyyyyHHmmss)
+  appname?: string; // Optional application key
+  startdate?: string; // Start date (format: ddMMyyyyHHmmss)
+  stopdate?: string; // End date (format: ddMMyyyyHHmmss)
 }
 
 /**

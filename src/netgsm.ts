@@ -6,7 +6,6 @@
 import { ApiErrorCode } from "./enums";
 import {
   NetgsmConfig,
-  SmsPayload,
   ApiResponse,
   ReportPayload,
   ReportResponse,
@@ -34,66 +33,38 @@ class Netgsm {
 
   /**
    * Initialize the Netgsm client.
-   * @param {NetgsmConfig} config - Configuration object containing usercode and password.
+   * @param {NetgsmConfig} config - Configuration object containing username and password.
    */
   constructor(private config: NetgsmConfig) {
-    if (!config.userCode || !config.password) {
-      throw new Error("UserCode and password are required");
+    if (!config.username || !config.password) {
+      throw new Error("Username and password are required");
     }
-    const authToken = this.generateAuthToken(this.config.userCode, this.config.password);
+    const authToken = this.generateAuthToken(this.config.username, this.config.password);
     this.headers = {
       "Content-Type": "application/json",
       Authorization: `Basic ${authToken}`,
     };
 
-    // Eğer appName belirtilmişse, SDK için özel format oluştur
-    if (config.appName) {
-      this.sdkAppName = `${config.appName}-sdk-js`;
+    // Eğer appname belirtilmişse, SDK için özel format oluştur
+    if (config.appname) {
+      this.sdkAppName = `${config.appname}-sdk-js`;
     }
   }
 
   /**
    * Generate Base64 encoded authorization token
-   * @param {string} userCode - User code for authentication.
+   * @param {string} username - Username for authentication.
    * @param {string} password - Password for authentication.
    * @returns {string} - Base64 encoded token.
    */
-  private generateAuthToken(userCode: string, password: string): string {
+  private generateAuthToken(username: string, password: string): string {
     if (typeof window !== "undefined" && typeof btoa === "function") {
       // Browser
-      return btoa(`${userCode}:${password}`);
+      return btoa(`${username}:${password}`);
     } else {
       // Server
-      return Buffer.from(`${userCode}:${password}`).toString("base64");
+      return Buffer.from(`${username}:${password}`).toString("base64");
     }
-  }
-
-  /**
-   * Send SMS using JSON payload.
-   * @deprecated Use sendRestSms instead
-   * @param {SmsPayload} payload - JSON payload for sending SMS.
-   * @returns {Promise<ApiResponse>} - The API response.
-   */
-  async sendSms(payload: SmsPayload): Promise<ApiResponse> {
-    const response = await fetch(`${this.baseURL}/sms/send/rest/v1`, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify({
-        msgheader: payload.msgHeader,
-        startdate: payload?.startDate,
-        stopdate: payload?.stopDate,
-        appname: payload?.appName,
-        iysfilter: payload?.iysFilter,
-        partnercode: payload?.partnerCode,
-        encoding: payload?.encoding,
-        messages: payload.messages.map((message) => ({
-          msg: message.message,
-          no: message.phone,
-        })),
-      }),
-    });
-
-    return await this.handleResponse<ApiResponse>(response);
   }
 
   /**
@@ -116,8 +87,8 @@ class Netgsm {
         ...(payload?.partnercode && { partnercode: payload.partnercode }),
         ...(payload?.encoding && { encoding: payload.encoding }),
         messages: payload.messages,
-        ...(payload?.startdate && { startdate: payload.startdate }), // startdate ekleme
-        ...(payload?.stopdate && { stopdate: payload.stopdate }), // stopdate ekleme
+        ...(payload?.startdate && { startdate: payload.startdate }),
+        ...(payload?.stopdate && { stopdate: payload.stopdate }),
       }),
     });
 
@@ -159,34 +130,6 @@ class Netgsm {
   }
 
   /**
-   * Fetch SMS report based on provided parameters.
-   * @deprecated Use getReport instead
-   * @param {ReportPayload} payload - JSON payload for fetching SMS report.
-   * @returns {Promise<ReportResponse>} - The API response containing report details.
-   */
-  async fetchSmsReport(payload: ReportPayload): Promise<ReportResponse> {
-    const response = await fetch(`${this.baseURL}/sms/report`, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify({
-        report: {
-          usercode: this.config.userCode,
-          password: this.config.password,
-          bulkid: payload.bulkIds?.join(","),
-          type: payload?.type,
-          status: payload?.status,
-          version: payload?.version,
-          bastar: payload?.startDate,
-          bittar: payload?.stopDate,
-          appname: payload?.appName || this.sdkAppName,
-        },
-      }),
-    });
-
-    return await this.handleResponse<ReportResponse>(response);
-  }
-
-  /**
    * Get SMS report using REST v2 API
    * @param {ReportPayload} payload - JSON payload for fetching SMS report.
    * @returns {Promise<ReportResponse>} - The API response containing report details.
@@ -197,35 +140,15 @@ class Netgsm {
       headers: this.headers,
       body: JSON.stringify({
         jobids: payload.bulkIds,
-        startdate: payload.startDate,
-        stopdate: payload.stopDate,
-        appname: payload?.appName || this.sdkAppName,
+        startdate: payload.startdate,
+        stopdate: payload.stopdate,
+        appname: payload?.appname || this.sdkAppName,
         pagenumber: payload?.pageNumber,
         pagesize: payload?.pageSize,
       }),
     });
 
     return await this.handleResponse<ReportResponse>(response);
-  }
-
-  /**
-   * Query registered sender IDs/headers
-   * @deprecated Use getHeaders instead
-   * @param {HeaderQueryPayload} payload - Optional payload for the query
-   * @returns {Promise<HeaderQueryResponse>} - The API response containing header details.
-   */
-  async queryHeaders(payload?: HeaderQueryPayload): Promise<HeaderQueryResponse> {
-    const response = await fetch(`${this.baseURL}/sms/header`, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify({
-        usercode: this.config.userCode,
-        password: this.config.password,
-        appname: payload?.appName || this.sdkAppName,
-      }),
-    });
-
-    return await this.handleResponse<HeaderQueryResponse>(response);
   }
 
   /**
@@ -236,8 +159,8 @@ class Netgsm {
   async getHeaders(payload?: HeaderQueryPayload): Promise<HeaderQueryResponse> {
     const url = new URL(`${this.baseURL}/sms/rest/v2/msgheader`);
 
-    if (payload?.appName || this.sdkAppName) {
-      url.searchParams.append("appname", payload?.appName || this.sdkAppName || "");
+    if (payload?.appname || this.sdkAppName) {
+      url.searchParams.append("appname", payload?.appname || this.sdkAppName || "");
     }
 
     const response = await fetch(url.toString(), {
@@ -256,16 +179,16 @@ class Netgsm {
   async getInbox(payload?: SmsInboxPayload): Promise<SmsInboxResponse> {
     const url = new URL(`${this.baseURL}/sms/rest/v2/inbox`);
 
-    if (payload?.appName || this.sdkAppName) {
-      url.searchParams.append("appname", payload?.appName || this.sdkAppName || "");
+    if (payload?.appname || this.sdkAppName) {
+      url.searchParams.append("appname", payload?.appname || this.sdkAppName || "");
     }
 
-    if (payload?.startDate) {
-      url.searchParams.append("startdate", payload.startDate);
+    if (payload?.startdate) {
+      url.searchParams.append("startdate", payload.startdate);
     }
 
-    if (payload?.stopDate) {
-      url.searchParams.append("stopdate", payload.stopDate);
+    if (payload?.stopdate) {
+      url.searchParams.append("stopdate", payload.stopdate);
     }
 
     const response = await fetch(url.toString(), {
@@ -290,7 +213,7 @@ class Netgsm {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        usercode: this.config.userCode,
+        usercode: this.config.username,
         password: this.config.password,
         stip: payload.stip,
         ...(payload?.appkey && { appkey: payload.appkey }),

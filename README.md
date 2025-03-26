@@ -63,9 +63,9 @@ const { Netgsm, SmsStatus, BalanceType } = require('@netgsm/sms');
 
 // Configure Netgsm client
 const netgsm = new Netgsm({
-  userCode: 'YOUR_USER_CODE',
+  username: 'YOUR_USERNAME',
   password: 'YOUR_PASSWORD',
-  appName: 'YOUR_APP_NAME' // Optional
+  appname: 'YOUR_APP_NAME' // Optional
 });
 
 // Send SMS
@@ -100,9 +100,9 @@ import { Netgsm, SmsStatus, BalanceType } from '@netgsm/sms';
 
 // Configure Netgsm client
 const netgsm = new Netgsm({
-  userCode: 'YOUR_USER_CODE',
+  username: 'YOUR_USERNAME',
   password: 'YOUR_PASSWORD',
-  appName: 'YOUR_APP_NAME' // Optional
+  appname: 'YOUR_APP_NAME' // Optional
 });
 
 // Type-safe usage
@@ -135,9 +135,9 @@ For more examples, check the [examples](./examples) directory:
 
 ```javascript
 const netgsm = new Netgsm({
-  userCode: 'YOUR_USER_CODE', // Required
+  username: 'YOUR_USERNAME', // Required
   password: 'YOUR_PASSWORD',  // Required
-  appName: 'YOUR_APP_NAME'    // Optional
+  appname: 'YOUR_APP_NAME'    // Optional
 });
 ```
 
@@ -183,8 +183,8 @@ const headers = await netgsm.getHeaders();
 
 ```javascript
 const inbox = await netgsm.getInbox({
-  startDate: '01012024', // Start date (format: ddMMyyyy)
-  stopDate: '31012024'   // End date (format: ddMMyyyy)
+  startdate: '01012024', // Start date (format: ddMMyyyy)
+  stopdate: '31012024'   // End date (format: ddMMyyyy)
 });
 ```
 

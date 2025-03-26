@@ -12,9 +12,9 @@ const path = require('path');
 // Netgsm istemcisini yapılandırma
 // Gerçek kullanımda kendi bilgilerinizi girin
 const netgsm = new Netgsm({
-  usercode: 'KULLANICI_KODUNUZ',
+  username: 'KULLANICI_KODUNUZ',
   password: 'PAROLANIZ',
-  appName: 'UYGULAMA_ADINIZ' // İsteğe bağlı
+  appname: 'UYGULAMA_ADINIZ' // İsteğe bağlı
 });
 
 /**
@@ -40,7 +40,7 @@ async function sendBulkSms(messageList, header) {
     });
     
     console.log('Toplu SMS gönderildi:', response);
-    return response.jobId;
+    return response.jobid;
   } catch (error) {
     console.error('Toplu SMS gönderme hatası:', error);
     throw error;
@@ -81,7 +81,7 @@ async function queryBulkSmsReport(jobId) {
     console.log(`${jobId} numaralı toplu SMS raporu sorgulanıyor...`);
     
     const report = await netgsm.queryReport({
-      bulkId: jobId,
+      bulkIds: jobId,
       type: Enums.ReportType.DETAILED
     });
     
