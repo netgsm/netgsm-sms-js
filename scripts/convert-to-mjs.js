@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const esmDir = path.join(__dirname, '../dist/esm');
+const esmDir = path.join(__dirname, '../dist');
 
 // Read all JavaScript files in the esm directory
 const jsFiles = fs.readdirSync(esmDir).filter(file => file.endsWith('.js'));
