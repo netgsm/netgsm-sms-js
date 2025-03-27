@@ -59,7 +59,13 @@ yarn add @netgsm/sms
 ### CommonJS usage
 
 ```javascript
+// Option 1: Named imports
 const { Netgsm, SmsStatus, BalanceType } = require('@netgsm/sms');
+
+// Option 2: Default import
+const Netgsm = require('@netgsm/sms').default;
+// or
+const { default: Netgsm } = require('@netgsm/sms');
 
 // Configure Netgsm client
 const netgsm = new Netgsm({
@@ -96,6 +102,10 @@ sendSms();
 ### ES Modules / TypeScript usage
 
 ```typescript
+// Option 1: Default import (recommended)
+import Netgsm from '@netgsm/sms';
+
+// Option 2: Named imports
 import { Netgsm, SmsStatus, BalanceType } from '@netgsm/sms';
 
 // Configure Netgsm client
