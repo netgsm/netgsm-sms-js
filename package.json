@@ -76,7 +76,7 @@
     "prebuild": "npm run clean",
     "build": "npm run build:cjs && npm run build:esm",
     "build:cjs": "tsc --project tsconfig.json",
-    "build:esm": "tsc --project tsconfig.json --module es2020 --outDir dist/esm && npm run convert-to-mjs",
+    "build:esm": "tsc --project tsconfig.esm.json && npm run convert-to-mjs",
     "convert-to-mjs": "node scripts/convert-to-mjs.js",
     "build:all": "npm run build",
     "test": "jest --coverage --verbose --testPathIgnorePatterns=__tests__/integration/",

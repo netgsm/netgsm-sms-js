@@ -1,61 +1,74 @@
 /**
- * Convert ESM files to .mjs format
+ * Convert ESM files to .mjs format and move to dist/ directory
  */
 const fs = require('fs');
 const path = require('path');
 
 const distDir = path.join(__dirname, '../dist');
+const esmDir = path.join(__dirname, '../dist/esm');
 
-// Read all JavaScript files in the dist directory
-const jsFiles = fs.readdirSync(distDir).filter(file => file.endsWith('.js'));
+// Create proper ES Module versions and copy to dist root
+console.log('Processing ES Modules files...');
 
-console.log(`Converting ${jsFiles.length} files to .mjs format...`);
+// Process all JS files in the esm directory
+const esmFiles = fs.readdirSync(esmDir).filter(file => file.endsWith('.js'));
 
-// Copy each .js file to an .mjs file
-jsFiles.forEach(file => {
-  const jsPath = path.join(distDir, file);
-  const mjsPath = path.join(distDir, file.replace('.js', '.mjs'));
+esmFiles.forEach(file => {
+  const esmFilePath = path.join(esmDir, file);
+  const mjsFilePath = path.join(distDir, file.replace('.js', '.mjs'));
   
-  // Read content from .js file
-  let content = fs.readFileSync(jsPath, 'utf8');
+  // Read the ESM JS file
+  let content = fs.readFileSync(esmFilePath, 'utf8');
   
-  // Fix imports if necessary (change .js to .mjs)
+  // Fix imports to use .mjs extension
+  // 1. Fix imports with .js extension
   content = content.replace(/from ['"](.*)\.js['"]/g, "from '$1.mjs'");
   
-  // Ensure exports.__esModule is set to true for correct default export
-  if (file === 'index.js') {
-    // Check if the file already has Object.defineProperty for __esModule
-    if (!content.includes('Object.defineProperty(exports, "__esModule"')) {
-      content = content.replace(
-        'exports.default = void 0;', 
-        'exports.default = void 0;\nObject.defineProperty(exports, "__esModule", { value: true });'
-      );
+  // 2. Fix imports without extension (e.g., "./enums" -> "./enums.mjs")
+  content = content.replace(/from ["'](\.[^"']*?)["']/g, (match, p1) => {
+    // Skip if it already has an extension
+    if (p1.endsWith('.mjs') || p1.endsWith('.js') || p1.endsWith('.json')) {
+      return match;
     }
-    
-    // Make sure default export is properly set
-    // This handles both cases: class as default export and object as default export
-    if (content.includes('exports.default = ')) {
-      console.log('Default export found in index.js');
-    } else {
-      console.warn('Warning: No default export found in index.js');
-    }
-  }
+    return `from "${p1}.mjs"`;
+  });
   
-  // Write to .mjs file
-  fs.writeFileSync(mjsPath, content);
+  // Write to .mjs file in dist root
+  fs.writeFileSync(mjsFilePath, content);
   
-  console.log(`Converted: ${file} -> ${file.replace('.js', '.mjs')}`);
+  console.log(`Converted and moved: ${file} -> ${file.replace('.js', '.mjs')}`);
 });
 
-// Check if index.mjs exists and has proper exports
+// Verify index.mjs
 const indexMjsPath = path.join(distDir, 'index.mjs');
 if (fs.existsSync(indexMjsPath)) {
   console.log('Verifying index.mjs file...');
   const indexContent = fs.readFileSync(indexMjsPath, 'utf8');
   
-  // Log for debugging
-  console.log('Default export in index.mjs: ' + 
-    (indexContent.includes('export default') || indexContent.includes('exports.default =')));
+  // Check for default export
+  const hasDefaultExport = 
+    indexContent.includes('export default') || 
+    indexContent.includes('export { default }');
+  
+  console.log(`Default export in index.mjs: ${hasDefaultExport ? 'Found' : 'NOT FOUND!'}`);
+  
+  // If no default export found, we add one manually
+  if (!hasDefaultExport) {
+    console.log('Adding default export to index.mjs...');
+    
+    // Find the Netgsm class export
+    if (indexContent.includes('export class Netgsm')) {
+      const updatedContent = indexContent.replace(
+        'export class Netgsm', 
+        'export class Netgsm'
+      ) + '\nexport default Netgsm;\n';
+      
+      fs.writeFileSync(indexMjsPath, updatedContent);
+      console.log('Default export added successfully.');
+    } else {
+      console.warn('Warning: Could not locate Netgsm class to export as default');
+    }
+  }
 }
 
-console.log('Conversion completed successfully!'); 
+console.log('ES Modules conversion completed successfully!'); 
