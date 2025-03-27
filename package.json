@@ -1,6 +1,6 @@
 {
   "name": "@netgsm/sms",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Netgsm API Client for SMS sending and reporting",
   "main": "./dist/index.js",
   "exports": {
