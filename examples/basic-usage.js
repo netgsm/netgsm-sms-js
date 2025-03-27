@@ -47,8 +47,7 @@ async function checkReportExample(jobId) {
     console.log(`${jobId} numaralı SMS raporu sorgulanıyor...`);
     
     const report = await netgsm.getReport({
-      bulkIds: [jobId],
-      type: Enums.ReportType.DETAILED // Detaylı rapor
+      bulkIds: [jobId]      
     });
     
     console.log('SMS raporu:', report);

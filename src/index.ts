@@ -3,7 +3,7 @@
  * @description Netgsm SMS API client for Node.js
  */
 
-import { ApiErrorCode, BalanceType, OperatorCode, ReportType, SmsStatus } from "./enums";
+import { ApiErrorCode, BalanceType, OperatorCode, SmsStatus } from "./enums";
 import Netgsm from "./netgsm";
 
 export { Netgsm };
@@ -13,4 +13,4 @@ export default Netgsm;
 export * from "./types";
 
 // Export all enums
-export { ApiErrorCode, BalanceType, OperatorCode, ReportType, SmsStatus };
+export { ApiErrorCode, BalanceType, OperatorCode, SmsStatus };

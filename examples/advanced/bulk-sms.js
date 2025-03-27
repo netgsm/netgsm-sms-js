@@ -80,9 +80,8 @@ async function queryBulkSmsReport(jobId) {
   try {
     console.log(`${jobId} numaralı toplu SMS raporu sorgulanıyor...`);
     
-    const report = await netgsm.queryReport({
-      bulkIds: jobId,
-      type: Enums.ReportType.DETAILED
+    const report = await netgsm.getReport({
+      bulkIds: [jobId]
     });
     
     console.log('Toplu SMS raporu:', report);

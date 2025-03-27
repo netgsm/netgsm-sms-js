@@ -70,24 +70,29 @@ async function cancelScheduledSms(jobId) {
 }
 
 /**
- * Zamanlanmış SMS durumunu kontrol etme örneği
- * @param {string} jobId - Kontrol edilecek SMS'in iş kimliği
- * @returns {Promise<object>} - Rapor yanıtı
+ * Rapor sorgulama
+ * @param {string} jobId - İş kimliği
  */
-async function checkScheduledSmsStatus(jobId) {
+async function checkReport(jobId) {
   try {
-    console.log(`${jobId} numaralı zamanlanmış SMS durumu sorgulanıyor...`);
+    console.log(`${jobId} numaralı SMS raporu sorgulanıyor...`);
     
     const report = await netgsm.getReport({
       bulkIds: [jobId],
-      type: Enums.ReportType.DETAILED
     });
     
-    console.log('Zamanlanmış SMS durumu:', report);
-    return report;
+    console.log("SMS raporu:", JSON.stringify(report, null, 2));
+    
+    // Rapordaki iletim durumunu kontrol et
+    if (report.jobs && report.jobs.length > 0) {
+      for (const job of report.jobs) {
+        console.log(`Alıcı: ${job.number}, Durum: ${job.status}`);
+      }
+    } else {
+      console.log("Raporda iletim bilgisi bulunamadı.");
+    }
   } catch (error) {
-    console.error('Durum sorgulama hatası:', error);
-    throw error;
+    console.error("Rapor sorgulama hatası:", error);
   }
 }
 
@@ -125,13 +130,13 @@ async function runScheduledSmsExample() {
     
     if (jobId) {
       // Durumu kontrol et
-      await checkScheduledSmsStatus(jobId);
+      await checkReport(jobId);
       
       // SMS'i iptal et
       await cancelScheduledSms(jobId);
       
       // İptalden sonra durumu tekrar kontrol et
-      await checkScheduledSmsStatus(jobId);
+      await checkReport(jobId);
     }
     
     console.log('Zamanlanmış SMS örneği tamamlandı.');
@@ -149,7 +154,7 @@ async function runScheduledSmsExample() {
 module.exports = {
   sendScheduledSms,
   cancelScheduledSms,
-  checkScheduledSmsStatus,
+  checkReport,
   formatDateForNetgsm,
   runScheduledSmsExample
 };

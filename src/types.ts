@@ -1,4 +1,4 @@
-import { ApiErrorCode, SmsStatus, ReportType, BalanceType } from "./enums";
+import { ApiErrorCode, BalanceType } from "./enums";
 
 /**
  * @module Types
@@ -78,9 +78,6 @@ export interface RestSmsResponse {
  */
 export interface ReportPayload extends BasePayload {
   bulkIds?: string[]; // Bulk message ID(s), comma-separated if multiple
-  type?: ReportType; // Query type (e.g., 0 or 1)
-  status?: SmsStatus; // Status code (e.g., 1 for delivered messages)
-  version?: number; // API version (e.g., 2)
   pageNumber?: number; // Page number for pagination
   pageSize?: number; // Page size for pagination
 }
@@ -89,17 +86,6 @@ export interface ReportPayload extends BasePayload {
  * API response structure for fetching SMS reports.
  */
 export interface ReportResponse {
-  response?: {
-    job?: {
-      jobid: string; // Unique delivery ID
-      telno: string; // Recipient's phone number
-      status: SmsStatus; // Delivery status code
-      operator: number; // Operator code
-      msglen: number; // Message length
-      deliveredDate?: string; // Date and time of delivery
-      errorCode?: number; // Error code, if applicable
-    }[]; // Array of job details for each SMS in the report
-  };
   code?: string;
   description?: string;
   jobs?: {

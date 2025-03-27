@@ -160,8 +160,7 @@ const response = await netgsm.sendRestSms({
 
 ```javascript
 const report = await netgsm.getReport({
-  bulkIds: ['12345678'], // Job ID received after sending
-  reportType: ReportType.SINGLE_BULKID
+  bulkIds: ['12345678'] // Job ID received after sending  
 });
 ```
 

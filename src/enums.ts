@@ -35,19 +35,6 @@ export enum SmsStatus {
 }
 
 /**
- * Report type codes
- * @enum {number}
- */
-export enum ReportType {
-  /** Single bulk ID query */
-  SINGLE_BULKID = 0,
-  /** Multiple bulk ID query */
-  MULTIPLE_BULKID = 1,
-  /** Date range query */
-  DATE_RANGE = 2,
-}
-
-/**
  * API error codes
  * @enum {string}
  */
