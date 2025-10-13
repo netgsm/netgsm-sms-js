@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import fetchMock from "jest-fetch-mock";
 
-import { ApiErrorCode, BalanceType, OperatorCode } from "../../src/enums";
+import { ApiErrorCode, BalanceType, OperatorCode, OtpErrorCode } from "../../src/enums";
 import Netgsm from "../../src/netgsm";
 
 fetchMock.enableMocks();
@@ -497,6 +497,100 @@ describe("Netgsm Unit Tests", () => {
         code: ApiErrorCode.INVALID_AUTH,
         description: "Invalid authentication",
       });
+    });
+  });
+
+  describe("sendOtpSms", () => {
+    const validPayload = {
+      msgheader: "TEST",
+      message: "Your verification code is 123456",
+      no: "5551234567",
+    };
+
+    it("should send OTP SMS successfully", async () => {
+      const xmlResponse = `<?xml version="1.0"?>
+<xml><main>
+   <code>0</code>
+   <jobID>172551745916519453710565585</jobID>
+</main></xml>`;
+
+      fetchMock.mockResponseOnce(xmlResponse);
+
+      const response = await netgsm.sendOtpSms(validPayload);
+
+      expect(response.code).toBe(OtpErrorCode.SUCCESS);
+      expect(response.jobid).toBe("172551745916519453710565585");
+      expect(response.error).toBeUndefined();
+    });
+
+    it("should handle invalid authentication error", async () => {
+      const xmlResponse = `<?xml version="1.0"?>
+<xml><main>
+   <code>30</code>
+   <error>Kullanici bilgisi bulunamadi</error>
+</main></xml>`;
+
+      fetchMock.mockResponseOnce(xmlResponse);
+
+      await expect(netgsm.sendOtpSms(validPayload)).rejects.toEqual({
+        status: 406,
+        code: OtpErrorCode.INVALID_AUTH,
+        error: "Kullanici bilgisi bulunamadi",
+      });
+    });
+
+    it("should handle invalid header error", async () => {
+      const xmlResponse = `<?xml version="1.0"?>
+<xml><main>
+   <code>40</code>
+   <error>Gönderici adınızı kontrol ediniz</error>
+</main></xml>`;
+
+      fetchMock.mockResponseOnce(xmlResponse);
+
+      await expect(netgsm.sendOtpSms(validPayload)).rejects.toEqual({
+        status: 406,
+        code: OtpErrorCode.INVALID_HEADER,
+        error: "Gönderici adınızı kontrol ediniz",
+      });
+    });
+
+    it("should handle no OTP package error", async () => {
+      const xmlResponse = `<?xml version="1.0"?>
+<xml><main>
+   <code>60</code>
+   <error>Hesabınızda OTP SMS Paketi tanımlı değildir</error>
+</main></xml>`;
+
+      fetchMock.mockResponseOnce(xmlResponse);
+
+      await expect(netgsm.sendOtpSms(validPayload)).rejects.toEqual({
+        status: 406,
+        code: OtpErrorCode.NO_OTP_PACKAGE,
+        error: "Hesabınızda OTP SMS Paketi tanımlı değildir",
+      });
+    });
+
+    it("should handle rate limit error", async () => {
+      const xmlResponse = `<?xml version="1.0"?>
+<xml><main>
+   <code>80</code>
+   <error>Sorgulama sınır aşımı</error>
+</main></xml>`;
+
+      fetchMock.mockResponseOnce(xmlResponse);
+
+      await expect(netgsm.sendOtpSms(validPayload)).rejects.toEqual({
+        status: 406,
+        code: OtpErrorCode.RATE_LIMIT,
+        error: "Sorgulama sınır aşımı",
+      });
+    });
+
+    it("should handle network errors", async () => {
+      fetchMock.mockReject(new Error("Network error"));
+
+      await expect(netgsm.sendOtpSms(validPayload)).rejects.toThrow("Network error");
     });
   });
 });

@@ -17,6 +17,10 @@
       "description": "Bulk SMS sending and cancellation operations"
     },
     {
+      "name": "OTP SMS",
+      "description": "OTP (One-Time Password) SMS sending operations"
+    },
+    {
       "name": "QUERIES",
       "description": "Operations for inbox messages, SMS headers and SMS reports"
     }
@@ -59,6 +63,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sms/send/otp": {
+      "post": {
+        "tags": ["OTP SMS"],
+        "summary": "Send OTP SMS",
+        "description": "Send OTP (One-Time Password) SMS. Requires OTP package.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "text/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpSendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "text/xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtpResponse"
                 }
               }
             }
@@ -537,6 +570,67 @@
             }
           }
         ]
+      },
+      "OtpSendRequest": {
+        "type": "object",
+        "required": ["mainbody"],
+        "properties": {
+          "mainbody": {
+            "type": "object",
+            "properties": {
+              "header": {
+                "type": "object",
+                "properties": {
+                  "usercode": {
+                    "type": "string",
+                    "description": "Netgsm username"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Netgsm password"
+                  },
+                  "msgheader": {
+                    "type": "string",
+                    "description": "Message header/sender ID"
+                  }
+                },
+                "required": ["usercode", "password", "msgheader"]
+              },
+              "body": {
+                "type": "object",
+                "properties": {
+                  "msg": {
+                    "type": "string",
+                    "description": "OTP message (1 SMS length, no Turkish chars)"
+                  },
+                  "no": {
+                    "type": "string",
+                    "pattern": "^5[0-9]{9}$",
+                    "description": "Recipient phone number"
+                  }
+                },
+                "required": ["msg", "no"]
+              }
+            }
+          }
+        }
+      },
+      "OtpResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Response code (0=success)"
+          },
+          "jobID": {
+            "type": "string",
+            "description": "Job ID for successful send"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if failed"
+          }
+        }
       },
       "ReportRequest": {
         "allOf": [

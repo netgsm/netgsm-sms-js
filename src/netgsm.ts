@@ -3,7 +3,7 @@
  * @description Netgsm SMS API client implementation
  */
 
-import { ApiErrorCode } from "./enums";
+import { ApiErrorCode, OtpErrorCode } from "./enums";
 import {
   NetgsmConfig,
   ReportPayload,
@@ -18,6 +18,8 @@ import {
   SmsInboxPayload,
   RestSmsPayload,
   RestSmsResponse,
+  OtpSmsPayload,
+  OtpSmsResponse,
 } from "./types";
 
 /**
@@ -229,6 +231,66 @@ class Netgsm {
     }
 
     return data;
+  }
+
+  /**
+   * Send OTP SMS
+   * @param {OtpSmsPayload} payload - Payload for sending OTP SMS.
+   * @returns {Promise<OtpSmsResponse>} - The API response.
+   */
+  async sendOtpSms(payload: OtpSmsPayload): Promise<OtpSmsResponse> {
+    const xmlData = `<?xml version="1.0"?>
+<mainbody>
+   <header>
+       <usercode>${this.config.username}</usercode>
+       <password>${this.config.password}</password>
+       <msgheader>${payload.msgheader}</msgheader>
+   </header>
+   <body>
+       <msg><![CDATA[${payload.message}]]></msg>
+       <no>${payload.no}</no>
+   </body>
+</mainbody>`;
+
+    const response = await fetch(`${this.baseURL}/sms/send/otp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/xml",
+      },
+      body: xmlData,
+    });
+
+    const xmlText = await response.text();
+    return this.parseOtpXmlResponse(xmlText);
+  }
+
+  /**
+   * Parse XML response from OTP SMS API
+   * @param {string} xmlText - XML response text
+   * @returns {OtpSmsResponse} - Parsed response
+   */
+  private parseOtpXmlResponse(xmlText: string): OtpSmsResponse {
+    const codeMatch = xmlText.match(/<code>(.*?)<\/code>/);
+    const jobIdMatch = xmlText.match(/<jobID>(.*?)<\/jobID>/);
+    const errorMatch = xmlText.match(/<error>(.*?)<\/error>/);
+
+    const code = codeMatch ? codeMatch[1] : "";
+    const jobid = jobIdMatch ? jobIdMatch[1] : undefined;
+    const error = errorMatch ? errorMatch[1] : undefined;
+
+    if (code !== OtpErrorCode.SUCCESS) {
+      throw {
+        status: 406,
+        code,
+        error,
+      };
+    }
+
+    return {
+      code,
+      jobid,
+      error,
+    };
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {

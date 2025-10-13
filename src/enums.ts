@@ -102,3 +102,30 @@ export enum OperatorCode {
   /** KKTC Turkcell */
   KKTC_TURKCELL = 880,
 }
+
+/**
+ * OTP SMS error codes
+ * @enum {string}
+ */
+export enum OtpErrorCode {
+  /** Success */
+  SUCCESS = "0",
+  /** Message text or message size error */
+  MESSAGE_ERROR = "20",
+  /** Invalid username, password or no API access */
+  INVALID_AUTH = "30",
+  /** Invalid sender name */
+  INVALID_HEADER = "40",
+  /** Invalid sender name (alternative) */
+  INVALID_HEADER_ALT = "41",
+  /** Invalid phone number */
+  INVALID_NUMBER = "50",
+  /** No OTP SMS Package defined in account */
+  NO_OTP_PACKAGE = "60",
+  /** Input parameter error */
+  PARAMETER_ERROR = "70",
+  /** Query limit exceeded (100 per minute) */
+  RATE_LIMIT = "80",
+  /** System error */
+  SYSTEM_ERROR = "100",
+}

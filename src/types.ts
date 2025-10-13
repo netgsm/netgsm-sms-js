@@ -176,3 +176,21 @@ export interface BalanceResponse {
         balance_name: string;
       }>;
 }
+
+/**
+ * Payload for sending OTP SMS
+ */
+export interface OtpSmsPayload {
+  msgheader: string; // Sender header (e.g., "MyBrand")
+  message: string; // OTP message content (1 SMS length, no Turkish characters)
+  no: string; // Recipient's phone number (format: 5XXXXXXXXX)
+}
+
+/**
+ * API response structure for sending OTP SMS
+ */
+export interface OtpSmsResponse {
+  code: string;
+  jobid?: string;
+  error?: string;
+}

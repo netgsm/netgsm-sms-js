@@ -63,6 +63,20 @@ To run the example:
 node examples/advanced/scheduled-sms.js
 ```
 
+### [OTP SMS](./advanced/otp-sms.js)
+
+This example demonstrates how to send OTP (One-Time Password) SMS messages:
+
+- Sending OTP SMS
+- Generating and sending verification codes
+- Error handling for OTP-specific errors
+
+To run the example:
+
+```bash
+node examples/advanced/otp-sms.js
+```
+
 ### [Error Handling](./advanced/error-handling.js)
 
 This example demonstrates proper error handling techniques:
