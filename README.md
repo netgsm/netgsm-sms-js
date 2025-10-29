@@ -27,6 +27,7 @@ Official Node.js client for the Netgsm SMS API. This package enables you to easi
 
 - SMS sending (instant and scheduled)
 - Bulk SMS sending (different messages for each recipient)
+- OTP SMS sending (One-Time Password messages)
 - SMS report querying
 - Message header listing
 - Balance querying
@@ -137,6 +138,7 @@ For more examples, check the [examples](./examples) directory:
 - [Basic Usage](./examples/basic-usage.js)
 - [Scheduled SMS](./examples/advanced/scheduled-sms.js)
 - [Bulk SMS](./examples/advanced/bulk-sms.js)
+- [OTP SMS](./examples/advanced/otp-sms.js)
 - [Additional Examples](./examples/advanced/additional-examples.js) (Future-dated, multiple numbers, end-dated, Turkish character support, and IYS filtered deliveries)
 
 ## API Reference
@@ -202,6 +204,16 @@ const inbox = await netgsm.getInbox({
 ```javascript
 const cancelResult = await netgsm.cancelSms({
   jobid: '12345678' // Job ID of the delivery to cancel
+});
+```
+
+### Sending OTP SMS
+
+```javascript
+const response = await netgsm.sendOtpSms({
+  msgheader: 'YOUR_HEADER',
+  message: 'Your verification code is 123456',
+  no: '5XXXXXXXXX' // Recipient number (without leading 0)
 });
 ```
 
