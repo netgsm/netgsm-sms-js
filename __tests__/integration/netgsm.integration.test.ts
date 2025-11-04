@@ -112,7 +112,7 @@ describe("Netgsm Integration Tests", () => {
       console.error(
         `SMS iptal hatası: ${(error as { code: string; description: string }).code} - ${(error as { code: string; description: string }).description}`
       );
-      fail(
+      throw new Error(
         `SMS iptal edilemedi: ${(error as { code: string; description: string }).code} - ${(error as { code: string; description: string }).description}`
       );
     }
