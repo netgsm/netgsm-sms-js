@@ -1,4 +1,11 @@
-import { ApiErrorCode, BalanceType } from "./enums";
+import {
+  ApiErrorCode,
+  BalanceType,
+  IysConsentType,
+  IysRecipientType,
+  IysSource,
+  IysStatus,
+} from "./enums";
 
 /**
  * @module Types
@@ -175,4 +182,74 @@ export interface BalanceResponse {
         amount: number;
         balance_name: string;
       }>;
+}
+
+/**
+ * IYS recipient data structure
+ */
+export interface IysRecipient {
+  type: IysConsentType | string;
+  source: IysSource | string;
+  recipient: string;
+  status: IysStatus | string;
+  consentDate: string; // Format: YYYY-MM-DD HH:mm:ss
+  recipientType: IysRecipientType | string;
+}
+
+/**
+ * Payload for adding IYS recipients
+ */
+export interface IysAddPayload {
+  brandCode: string;
+  refid?: string;
+  data: IysRecipient[];
+}
+
+/**
+ * Response for adding IYS recipients
+ */
+export interface IysAddResponse {
+  code: string;
+  error: string; // "false" on success
+  uid?: string;
+  erroritem?: {
+    [key: string]: { [key: string]: string };
+  };
+}
+
+/**
+ * IYS recipient data structure for search
+ */
+export interface IysSearchRecipient {
+  type: IysConsentType | string;
+  recipient: string;
+  recipientType: IysRecipientType | string;
+  refid?: string;
+}
+
+/**
+ * Payload for searching IYS recipients
+ */
+export interface IysSearchPayload {
+  brandCode: string;
+  data: IysSearchRecipient[];
+}
+
+/**
+ * Response for searching IYS recipients
+ */
+export interface IysSearchResponse {
+  code: string;
+  error: string; // "false" on success
+  query?: {
+    consentDate: string;
+    source: string;
+    recipient: string;
+    recipientType: IysRecipientType | string;
+    type: IysConsentType | string;
+    status: IysStatus | string;
+    creationDate: string;
+    retailerAccessCount: number;
+    querystatus: string | null;
+  };
 }

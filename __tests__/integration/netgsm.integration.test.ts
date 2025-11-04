@@ -1,9 +1,38 @@
 import { config } from "dotenv";
 
-import { BalanceType, SmsStatus } from "../../src/enums";
+import {
+  BalanceType,
+  IysConsentType,
+  IysRecipientType,
+  IysSource,
+  IysStatus,
+  SmsStatus,
+} from "../../src/enums";
 import Netgsm from "../../src/netgsm";
 
 config();
+
+describe("Environment variables", () => {
+  test("NETGSM_USERNAME tanımlı olmalı", () => {
+    expect(process.env.NETGSM_USERNAME).toBeDefined();
+    expect(process.env.NETGSM_USERNAME).not.toBe("");
+  });
+
+  test("NETGSM_PASSWORD tanımlı olmalı", () => {
+    expect(process.env.NETGSM_PASSWORD).toBeDefined();
+    expect(process.env.NETGSM_PASSWORD).not.toBe("");
+  });
+
+  test("NETGSM_MESSAGE_HEADER tanımlı olmalı", () => {
+    expect(process.env.NETGSM_MESSAGE_HEADER).toBeDefined();
+    expect(process.env.NETGSM_MESSAGE_HEADER).not.toBe("");
+  });
+
+  test("TEST_PHONE_NUMBER tanımlı olmalı", () => {
+    expect(process.env.TEST_PHONE_NUMBER).toBeDefined();
+    expect(process.env.TEST_PHONE_NUMBER).not.toBe("");
+  });
+});
 
 describe("Netgsm Integration Tests", () => {
   let netgsm: Netgsm;
@@ -148,10 +177,25 @@ describe("Netgsm Integration Tests", () => {
     // Önceki testte alınan jobid'nin tanımlı olduğundan emin olalım
     expect(instantSmsJobId).toBeTruthy();
 
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const day = date.getDate().toString().padStart(2, "0");
+      const hour = date.getHours().toString().padStart(2, "0");
+      const minute = date.getMinutes().toString().padStart(2, "0");
+      const seconds = date.getSeconds().toString().padStart(2, "0");
+      return `${day}.${month}.${year} ${hour}:${minute}:${seconds}`;
+    };
+
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 2);
+
+    const endDate = new Date();
+
     const reportPayload = {
       bulkIds: [instantSmsJobId],
-      startdate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
-      stopdate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+      startdate: formatDate(startDate),
+      stopdate: formatDate(endDate),
     };
 
     const report = await netgsm.getReport(reportPayload);
@@ -204,6 +248,84 @@ describe("Netgsm Integration Tests", () => {
       expect((error as { code: string }).code).toBe("40");
       // eslint-disable-next-line no-console
       console.log("Gelen kutusunda mesaj bulunamadı (beklenen durum)");
+    }
+  }, 10000);
+
+  // 8. IYS'ye alıcı ekleme
+  it("should add a recipient to IYS", async () => {
+    if (!process.env.NETGSM_BRAND_CODE || !process.env.TEST_PHONE_NUMBER) {
+      // eslint-disable-next-line no-console
+      throw new Error(
+        "Skipping IYS test: NETGSM_BRAND_CODE or TEST_PHONE_NUMBER is not defined in .env"
+      );
+    }
+
+    const brandCode = process.env.NETGSM_BRAND_CODE;
+    const phoneNumber = process.env.TEST_PHONE_NUMBER;
+
+    const iysPayload = {
+      brandCode,
+      data: [
+        {
+          type: IysConsentType.MESSAGE,
+          source: IysSource.HS_WEB,
+          recipient: `+${phoneNumber}`,
+          status: IysStatus.APPROVE,
+          // Geçerli bir tarih formatı: YYYY-AA-GG SS:dd:ss
+          consentDate: new Date().toISOString().slice(0, 19).replace("T", " "),
+          recipientType: IysRecipientType.BIREYSEL,
+        },
+      ],
+    };
+
+    try {
+      const iysResponse = await netgsm.addIysRecipients(iysPayload);
+      expect(iysResponse.code).toBe("0");
+      expect(iysResponse.error).toBe("false");
+      expect(iysResponse.uid).toBeDefined();
+      // eslint-disable-next-line no-console
+      console.log(`IYS'ye alıcı eklendi, UID: ${iysResponse.uid}`);
+    } catch (error) {
+      throw new Error(`IYS'ye alıcı eklenemedi: ${JSON.stringify(error)}`);
+    }
+  }, 10000);
+
+  // 9. IYS'de alıcı sorgulama
+  it("should search for a recipient in IYS", async () => {
+    const brandCode = process.env.NETGSM_BRAND_CODE;
+    const phoneNumber = process.env.TEST_PHONE_NUMBER;
+
+    if (!brandCode || !phoneNumber) {
+      // eslint-disable-next-line no-console
+      throw new Error(
+        "Skipping IYS search test: NETGSM_BRAND_CODE or TEST_PHONE_NUMBER is not defined in .env"
+      );
+    }
+
+    // Kaydın sisteme işlenmesi için kısa bir süre bekle
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const searchPayload = {
+      brandCode,
+      data: [
+        {
+          type: IysConsentType.MESSAGE,
+          recipient: `+${phoneNumber}`,
+          recipientType: IysRecipientType.BIREYSEL,
+        },
+      ],
+    };
+
+    try {
+      const searchResponse = await netgsm.searchIysRecipients(searchPayload);
+      expect(searchResponse.code).toBe("0");
+      expect(searchResponse.error).toBe("false");
+      expect(searchResponse.query).toBeDefined();
+      expect(searchResponse.query?.recipient).toBe(`+${phoneNumber}`);
+      // eslint-disable-next-line no-console
+      console.log(`IYS'de alıcı bulundu: ${searchResponse.query?.recipient}`);
+    } catch (error) {
+      throw new Error(`IYS'de alıcı sorgulanamadı: ${JSON.stringify(error)}`);
     }
   }, 10000);
 });

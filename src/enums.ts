@@ -102,3 +102,40 @@ export enum OperatorCode {
   /** KKTC Turkcell */
   KKTC_TURKCELL = 880,
 }
+
+/**
+ * IYS consent source
+ * @enum {string}
+ */
+export enum IysSource {
+  HS_WEB = "HS_WEB",
+  HS_MESAJ = "HS_MESAJ",
+  HS_EPOSTA = "HS_EPOSTA",
+}
+
+/**
+ * IYS recipient type
+ * @enum {string}
+ */
+export enum IysRecipientType {
+  BIREYSEL = "BIREYSEL",
+  TACIR = "TACIR",
+}
+
+/**
+ * IYS consent type
+ * @enum {string}
+ */
+export enum IysConsentType {
+  MESSAGE = "MESAJ",
+  EMAIL = "EPOSTA",
+}
+
+/**
+ * IYS consent status
+ * @enum {string}
+ */
+export enum IysStatus {
+  APPROVE = "ONAY",
+  REJECT = "RET",
+}
