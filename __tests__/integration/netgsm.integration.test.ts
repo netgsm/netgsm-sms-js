@@ -253,14 +253,14 @@ describe("Netgsm Integration Tests", () => {
 
   // 8. IYS'ye alıcı ekleme
   it("should add a recipient to IYS", async () => {
-    if (!process.env.NETGSM_BRAND_CODE || !process.env.TEST_PHONE_NUMBER) {
+    if (!process.env.NETIYS_BRAND_CODE || !process.env.TEST_PHONE_NUMBER) {
       // eslint-disable-next-line no-console
       throw new Error(
-        "Skipping IYS test: NETGSM_BRAND_CODE or TEST_PHONE_NUMBER is not defined in .env"
+        "Skipping IYS test: NETIYS_BRAND_CODE or TEST_PHONE_NUMBER is not defined in .env"
       );
     }
 
-    const brandCode = process.env.NETGSM_BRAND_CODE;
+    const brandCode = process.env.NETIYS_BRAND_CODE;
     const phoneNumber = process.env.TEST_PHONE_NUMBER;
 
     const iysPayload = {
@@ -292,13 +292,13 @@ describe("Netgsm Integration Tests", () => {
 
   // 9. IYS'de alıcı sorgulama
   it("should search for a recipient in IYS", async () => {
-    const brandCode = process.env.NETGSM_BRAND_CODE;
+    const brandCode = process.env.NETIYS_BRAND_CODE;
     const phoneNumber = process.env.TEST_PHONE_NUMBER;
 
     if (!brandCode || !phoneNumber) {
       // eslint-disable-next-line no-console
       throw new Error(
-        "Skipping IYS search test: NETGSM_BRAND_CODE or TEST_PHONE_NUMBER is not defined in .env"
+        "Skipping IYS search test: NETIYS_BRAND_CODE or TEST_PHONE_NUMBER is not defined in .env"
       );
     }
 
