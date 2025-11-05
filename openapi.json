@@ -19,6 +19,10 @@
     {
       "name": "QUERIES",
       "description": "Operations for inbox messages, SMS headers and SMS reports"
+    },
+    {
+      "name": "IYS",
+      "description": "Operations for IYS (İleti Yönetim Sistemi)"
     }
   ],
   "paths": {
@@ -37,7 +41,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RestSendRequest" 
+                "$ref": "#/components/schemas/RestSendRequest"
               }
             }
           }
@@ -245,6 +249,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReportErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iys/add": {
+      "post": {
+        "tags": ["IYS"],
+        "summary": "Add IYS Recipients",
+        "description": "Add recipients to IYS (İleti Yönetim Sistemi)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IysAddRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IysAddResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/iys/search": {
+      "post": {
+        "tags": ["IYS"],
+        "summary": "Search IYS Recipients",
+        "description": "Search for recipients in IYS (İleti Yönetim Sistemi)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IysSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IysSearchResponse"
                 }
               }
             }
@@ -580,6 +642,130 @@
             }
           }
         ]
+      },
+      "IysRecipient": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["MESAJ", "EPOSTA"]
+          },
+          "source": {
+            "type": "string",
+            "enum": ["HS_WEB", "HS_MESAJ", "HS_EPOSTA"]
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ONAY", "RET"]
+          },
+          "consentDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recipientType": {
+            "type": "string",
+            "enum": ["BIREYSEL", "TACIR"]
+          }
+        }
+      },
+      "IysAddRequest": {
+        "type": "object",
+        "properties": {
+          "header": {
+            "type": "object",
+            "properties": {
+              "username": { "type": "string" },
+              "password": { "type": "string" },
+              "brandCode": { "type": "string" },
+              "refid": { "type": "string" }
+            }
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/IysRecipient"
+                }
+              }
+            }
+          }
+        }
+      },
+      "IysAddResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "error": { "type": "string" },
+          "uid": { "type": "string" },
+          "erroritem": {
+            "type": "object"
+          }
+        }
+      },
+      "IysSearchRecipient": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["MESAJ", "EPOSTA"]
+          },
+          "recipient": { "type": "string" },
+          "recipientType": {
+            "type": "string",
+            "enum": ["BIREYSEL", "TACIR"]
+          },
+          "refid": { "type": "string" }
+        }
+      },
+      "IysSearchRequest": {
+        "type": "object",
+        "properties": {
+          "header": {
+            "type": "object",
+            "properties": {
+              "username": { "type": "string" },
+              "password": { "type": "string" },
+              "brandCode": { "type": "string" }
+            }
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/IysSearchRecipient"
+                }
+              }
+            }
+          }
+        }
+      },
+      "IysSearchResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "error": { "type": "string" },
+          "query": {
+            "type": "object",
+            "properties": {
+              "consentDate": { "type": "string" },
+              "source": { "type": "string" },
+              "recipient": { "type": "string" },
+              "recipientType": { "type": "string" },
+              "type": { "type": "string" },
+              "status": { "type": "string" },
+              "creationDate": { "type": "string" },
+              "retailerAccessCount": { "type": "integer" },
+              "querystatus": { "type": "string", "nullable": true }
+            }
+          }
+        }
       }
     },
     "securitySchemes": {
