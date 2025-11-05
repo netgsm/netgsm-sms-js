@@ -86,6 +86,7 @@ NETGSM_USERNAMEyour_username
 NETGSM_PASSWORD=your_password
 NETGSM_MESSAGE_HEADER=your_header
 TEST_PHONE_NUMBER=905xxxxxxxxx
+NETIYS_BRAND_CODE=xxxxxx
 ```
 
 ## Additional Resources
