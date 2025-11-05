@@ -138,6 +138,7 @@ For more examples, check the [examples](./examples) directory:
 - [Scheduled SMS](./examples/advanced/scheduled-sms.js)
 - [Bulk SMS](./examples/advanced/bulk-sms.js)
 - [Additional Examples](./examples/advanced/additional-examples.js) (Future-dated, multiple numbers, end-dated, Turkish character support, and IYS filtered deliveries)
+- [NETIYS Operations](./examples/advanced/iys-operations.js) (IYS add address, IYS check address)
 
 ## API Reference
 

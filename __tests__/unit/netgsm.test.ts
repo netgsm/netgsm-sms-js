@@ -1,7 +1,14 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import fetchMock from "jest-fetch-mock";
 
-import { ApiErrorCode, BalanceType, OperatorCode } from "../../src/enums";
+import {
+  ApiErrorCode,
+  BalanceType,
+  IysConsentType,
+  IysRecipientType,
+  IysStatus,
+  OperatorCode,
+} from "../../src/enums";
 import Netgsm from "../../src/netgsm";
 
 fetchMock.enableMocks();
@@ -496,6 +503,115 @@ describe("Netgsm Unit Tests", () => {
         status: 406,
         code: ApiErrorCode.INVALID_AUTH,
         description: "Invalid authentication",
+      });
+    });
+  });
+
+  describe("addIysRecipients", () => {
+    const validPayload = {
+      brandCode: "123456",
+      data: [
+        {
+          type: IysConsentType.MESSAGE,
+          source: "HS_WEB",
+          recipient: "+905551234567",
+          status: IysStatus.APPROVE,
+          consentDate: "2020-11-06 09:40:00",
+          recipientType: IysRecipientType.BIREYSEL,
+        },
+      ],
+    };
+
+    it("should add IYS recipients successfully", async () => {
+      const mockResponse = {
+        code: "0",
+        error: "false",
+        uid: "73113cb9-dff0-415b-9491-xxxxxxxxxx",
+      };
+      fetchMock.mockResponseOnce(JSON.stringify(mockResponse));
+
+      const response = await netgsm.addIysRecipients(validPayload);
+
+      expect(response).toEqual(mockResponse);
+      expect(fetchMock.mock.calls[0][0]).toBe("https://api.netgsm.com.tr/iys/add");
+      const requestBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+      expect(requestBody.header.brandCode).toBe("123456");
+      expect(requestBody.body.data[0].recipient).toBe("+905551234567");
+    });
+
+    it("should handle partial success with error items", async () => {
+      const mockResponse = {
+        code: "0",
+        error: "false",
+        uid: "16116f5e-ae2a-4745-927a-xxxxxxxxxxx",
+        erroritem: {
+          "1": {
+            recipient: "Telefon numarası 13 karakter ve numerik olmalıdır.+9xxxx",
+          },
+        },
+      };
+      fetchMock.mockResponseOnce(JSON.stringify(mockResponse));
+
+      const payloadWithInvalid = {
+        ...validPayload,
+        data: [
+          ...validPayload.data,
+          {
+            type: IysConsentType.MESSAGE,
+            source: "HS_WEB",
+            recipient: "+9xxxx", // Invalid recipient
+            status: IysStatus.APPROVE,
+            consentDate: "2020-11-06 09:40:00",
+            recipientType: IysRecipientType.BIREYSEL,
+          },
+        ],
+      };
+
+      const response = await netgsm.addIysRecipients(payloadWithInvalid);
+
+      expect(response).toEqual(mockResponse);
+      expect(response.erroritem).toBeDefined();
+      expect(response.erroritem?.[1].recipient).toContain("Telefon numarası 13 karakter");
+    });
+
+    it("should handle invalid user info error", async () => {
+      const mockErrorResponse = {
+        code: "30",
+        error: "Kullanici bilgisi bulunamadi",
+      };
+      fetchMock.mockResponseOnce(JSON.stringify(mockErrorResponse), { status: 200 });
+
+      await expect(netgsm.addIysRecipients(validPayload)).rejects.toEqual({
+        status: 200,
+        ...mockErrorResponse,
+      });
+    });
+
+    it("should handle invalid brand code error", async () => {
+      const mockErrorResponse = {
+        code: "60",
+        error: "Brandcode parametresinde gönderdiğiniz değeri kontrol ediniz.",
+      };
+      fetchMock.mockResponseOnce(JSON.stringify(mockErrorResponse), { status: 200 });
+
+      await expect(netgsm.addIysRecipients(validPayload)).rejects.toEqual({
+        status: 200,
+        ...mockErrorResponse,
+      });
+    });
+
+    it("should handle HTTP errors", async () => {
+      const mockErrorResponse = {
+        error: "Internal Server Error",
+      };
+      fetchMock.mockResponseOnce(JSON.stringify(mockErrorResponse), {
+        status: 500,
+      });
+
+      await expect(netgsm.addIysRecipients(validPayload)).rejects.toEqual({
+        status: 500,
+        code: undefined, // `code` is not in the response
+        error: "Internal Server Error",
       });
     });
   });

@@ -18,6 +18,10 @@ import {
   SmsInboxPayload,
   RestSmsPayload,
   RestSmsResponse,
+  IysAddPayload,
+  IysAddResponse,
+  IysSearchPayload,
+  IysSearchResponse,
 } from "./types";
 
 /**
@@ -222,6 +226,89 @@ class Netgsm {
     const data = await response.json();
 
     if (response.status !== 200) {
+      throw {
+        status: response.status,
+        ...data,
+      };
+    }
+
+    return data;
+  }
+
+  /**
+   * Add recipients to IYS (Consent Management System)
+   * @param {IysAddPayload} payload - Payload for adding IYS recipients.
+   * @returns {Promise<IysAddResponse>} - The API response.
+   */
+  async addIysRecipients(payload: IysAddPayload): Promise<IysAddResponse> {
+    const url = `${this.baseURL}/iys/add`;
+
+    const requestBody = {
+      header: {
+        username: this.config.username,
+        password: this.config.password,
+        brandCode: payload.brandCode,
+        ...(payload.refid && { refid: payload.refid }),
+      },
+      body: {
+        data: payload.data,
+      },
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = (await response.json()) as IysAddResponse;
+
+    // IYS API'si başarılı durumda HTTP 200 ve code "0" döner.
+    // Diğer durumlar (örn: code "30", "60") hata olarak kabul edilir.
+    if (response.status !== 200 || (data.code && data.code !== "0")) {
+      throw {
+        status: response.status,
+        ...data,
+      };
+    }
+
+    return data;
+  }
+
+  /**
+   * Search for recipients in IYS (Consent Management System)
+   * @param {IysSearchPayload} payload - Payload for searching IYS recipients.
+   * @returns {Promise<IysSearchResponse>} - The API response.
+   */
+  async searchIysRecipients(payload: IysSearchPayload): Promise<IysSearchResponse> {
+    const url = `${this.baseURL}/iys/search`;
+
+    const requestBody = {
+      header: {
+        username: this.config.username,
+        password: this.config.password,
+        brandCode: payload.brandCode,
+      },
+      body: {
+        data: payload.data,
+      },
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = (await response.json()) as IysSearchResponse;
+
+    // IYS API'si başarılı durumda HTTP 200 ve code "0" döner.
+    // Diğer durumlar (örn: code "30", "50", "60") hata olarak kabul edilir.
+    if (response.status !== 200 || (data.code && data.code !== "0")) {
       throw {
         status: response.status,
         ...data,

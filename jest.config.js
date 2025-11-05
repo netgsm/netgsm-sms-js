@@ -2,7 +2,6 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.test.ts'],
-  testPathIgnorePatterns: ['__tests__/integration/'],
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       useESM: false,
