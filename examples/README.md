@@ -23,6 +23,7 @@ npm install
 This example demonstrates the basic usage of the Netgsm SMS API:
 
 - Sending SMS
+- Sending OTP SMS
 - Querying SMS reports
 - Listing message headers
 - Checking balance

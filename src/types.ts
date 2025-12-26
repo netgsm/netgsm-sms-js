@@ -1,4 +1,14 @@
-import { ApiErrorCode, BalanceType } from "./enums";
+import {
+  SendSmsErrorCode,
+  SendOtpSmsErrorCode,
+  ReportErrorCode,
+  CancelErrorCode,
+  InboxErrorCode,
+  MsgHeaderErrorCode,
+  BalanceType,
+  BalanceErrorCode,
+  StatsErrorCode
+} from "./enums";
 
 /**
  * @module Types
@@ -44,6 +54,16 @@ export interface RestSmsPayload {
 }
 
 /**
+ * Payload for sending OTP SMS via REST v2 API
+ */
+export interface OtpSmsPayload {
+  msgheader: string; // Sender header (e.g., "MyBrand")
+  appname?: string; // Optional application key
+  msg: string; // SMS content
+  no: string; // Recipient's phone number
+}
+
+/**
  * API error response structure
  */
 export interface ApiError extends Error {
@@ -56,21 +76,21 @@ export interface ApiError extends Error {
 }
 
 /**
- * API response structure for sending SMS.
+ * API response structure for sending SMS via REST v2 API.
  */
-export interface ApiResponse {
-  code: ApiErrorCode;
-  description?: string;
+export interface RestSmsResponse {
+  code: SendSmsErrorCode;
+  description: string;
   jobid?: string;
 }
 
 /**
- * API response structure for sending SMS via REST v2 API.
+ * API response structure for sending OTP SMS via REST v2 API.
  */
-export interface RestSmsResponse {
-  code: string;
+export interface OtpSmsResponse {
+  code: SendOtpSmsErrorCode;
   description: string;
-  jobid?: string;
+  jobId?: string;
 }
 
 /**
@@ -86,7 +106,7 @@ export interface ReportPayload extends BasePayload {
  * API response structure for fetching SMS reports.
  */
 export interface ReportResponse {
-  code?: string;
+  code?: ReportErrorCode;
   description?: string;
   jobs?: {
     jobid: string; // Unique delivery ID
@@ -101,6 +121,32 @@ export interface ReportResponse {
 }
 
 /**
+ * Payload for Querying SMS stats via Netgsm API
+ */
+export interface StatsPayload {
+  jobid: string;
+  senddate?: string; // Optional senddate 
+  appname?: string; // Optional application key
+}
+
+/**
+ * API response structure for sending SMS via REST v2 API.
+ */
+export interface StatsResponse {
+  code?: StatsErrorCode;
+  description: string;
+  stats?: {
+    status: string,
+    totalMessageLength: number,
+    totalSms: number,
+    chargeStatement: string,
+    statement: string,
+    domestic: true
+  }[];
+}
+
+
+/**
  * Payload for querying sender IDs/headers
  */
 export interface HeaderQueryPayload {
@@ -112,7 +158,7 @@ export interface HeaderQueryPayload {
  */
 export interface HeaderQueryResponse {
   msgheader?: string[]; // Array of registered sender IDs/headers
-  code?: string;
+  code?: MsgHeaderErrorCode;
   description?: string;
   msgheaders?: string[]; // Array of registered sender IDs/headers (v2 API)
 }
@@ -129,7 +175,7 @@ export interface CancelSmsPayload {
  * Response type for SMS cancellation
  */
 export interface CancelSmsResponse {
-  code: string;
+  code: CancelErrorCode;
   description: string;
   jobid?: string;
 }
@@ -147,7 +193,7 @@ export interface SmsInboxPayload {
  * Response type for inbox messages query
  */
 export interface SmsInboxResponse {
-  code: string;
+  code: InboxErrorCode;
   description: string;
   messages?: {
     message: string; // SMS message content
@@ -168,7 +214,7 @@ export interface BalancePayload {
  * stip=2: Credit information
  */
 export interface BalanceResponse {
-  code?: string;
+  code?: BalanceErrorCode;
   balance?:
     | string
     | Array<{

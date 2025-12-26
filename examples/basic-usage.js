@@ -40,6 +40,27 @@ async function sendSmsExample() {
 }
 
 /**
+ * OTP SMS gönderme örneği
+ */
+async function sendOtpExample() {
+  try {
+    console.log('OTP SMS gönderiliyor...');
+    
+    const response = await netgsm.sendOtpSms({
+      msgheader: 'BAŞLIĞINIZ', // SMS başlığınız
+      msg: 'Merhaba! Bu bir test mesajıdır.', // max 160 karakter
+      no: '5XXXXXXXXX' // Alıcı numarası (başında 0 olmadan)      
+    });
+    
+    console.log('OTP SMS gönderildi:', response);
+    return response.jobid; // Rapor sorgulamak için jobid'yi döndürüyoruz
+  } catch (error) {
+    console.error('OTP SMS gönderme hatası:', error);
+  }
+}
+
+
+/**
  * SMS raporu sorgulama örneği
  */
 async function checkReportExample(jobId) {
@@ -125,6 +146,7 @@ async function runExamples() {
 
 module.exports = {
   sendSmsExample,
+  sendOtpExample,
   checkReportExample,
   listHeadersExample,
   checkBalanceExample,

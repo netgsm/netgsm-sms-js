@@ -25,6 +25,7 @@ Official Node.js client for the Netgsm SMS API. This package enables you to easi
 
 ## Features
 
+- OTP SMS
 - SMS sending (instant and scheduled)
 - Bulk SMS sending (different messages for each recipient)
 - SMS report querying
@@ -118,7 +119,7 @@ const netgsm = new Netgsm({
 // Type-safe usage
 async function checkBalance() {
   try {
-    const balance = await netgsm.getBalance({
+    const balance = await netgsm.checkBalance({
       type: BalanceType.CREDIT
     });
     
@@ -166,11 +167,29 @@ const response = await netgsm.sendRestSms({
 });
 ```
 
+### Sending OTP SMS
+
+```javascript
+const response = await netgsm.sendOtpSms({
+  msgheader: 'YOUR_HEADER',  
+  msg: 'OTP Message content', // Max 160 char
+  no: '5XXXXXXXXX' 
+});
+```
+
 ### Querying SMS Report
 
 ```javascript
 const report = await netgsm.getReport({
   bulkIds: ['12345678'] // Job ID received after sending  
+});
+```
+
+### Querying SMS Stats
+
+```javascript
+const report = await netgsm.getStats({
+  jobid: '12345678' // Job ID received after sending  
 });
 ```
 

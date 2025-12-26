@@ -3,7 +3,6 @@
  * @description Netgsm SMS API client implementation
  */
 
-import { ApiErrorCode } from "./enums";
 import {
   NetgsmConfig,
   ReportPayload,
@@ -18,6 +17,10 @@ import {
   SmsInboxPayload,
   RestSmsPayload,
   RestSmsResponse,
+  OtpSmsPayload,
+  OtpSmsResponse,
+  StatsPayload,
+  StatsResponse,  
 } from "./types";
 
 /**
@@ -95,6 +98,30 @@ class Netgsm {
   }
 
   /**
+   * Send OTP SMS using REST v2 API
+   * @param {OtpSmsPayload} payload - JSON payload for sending OTP SMS.
+   * @returns {Promise<OtpSmsResponse>} - The API response.
+   */
+  async sendOtpSms(payload: OtpSmsPayload): Promise<OtpSmsResponse> {
+    const response = await fetch(`${this.baseURL}/sms/rest/v2/otp`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        msgheader: payload.msgheader,
+        ...(payload?.appname
+          ? { appname: payload.appname }
+          : this.sdkAppName
+            ? { appname: this.sdkAppName }
+            : {}),
+        msg: payload.msg,
+        no: payload.no,
+      }),
+    });
+
+    return await this.handleResponse<OtpSmsResponse>(response);
+  }
+
+  /**
    * Cancel a scheduled SMS
    * @param {CancelSmsPayload} payload - JSON payload for cancelling SMS.
    * @returns {Promise<CancelSmsResponse>} - The API response.
@@ -113,19 +140,7 @@ class Netgsm {
       }),
     });
 
-    const data = await response.json();
-
-    // cancelSms için özel hata kontrolü
-    if (data.code && data.code !== ApiErrorCode.SUCCESS && data.code !== "00") {
-      throw {
-        status: response.status !== 200 ? response.status : 406,
-        code: data.code,
-        jobid: data.jobid || null,
-        description: data.description || "API Error",
-      };
-    }
-
-    return data as CancelSmsResponse;
+    return await this.handleResponse<CancelSmsResponse>(response);
   }
 
   /**
@@ -148,6 +163,25 @@ class Netgsm {
     });
 
     return await this.handleResponse<ReportResponse>(response);
+  }
+
+  /**
+   * Get SMS statistics using REST v2 API
+   * @param {StatsPayload} payload - JSON payload for fetching SMS report.
+   * @returns {Promise<StatsResponse>} - The API response containing report details.
+   */
+  async getStats(payload: StatsPayload): Promise<StatsResponse> {
+    const response = await fetch(`${this.baseURL}/sms/rest/v2/stats`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        jobid: payload.jobid,
+        sendDate: payload?.senddate,        
+        appname: payload?.appname || this.sdkAppName,
+      }),
+    });
+
+    return await this.handleResponse<StatsResponse>(response);
   }
 
   /**
@@ -232,34 +266,26 @@ class Netgsm {
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
-    const data = await response.json();
-
-    // Successful report response case
-    if (data.response?.job || data.jobid || response.status === 200) {
-      return data as T;
-    }
-
-    // API error codes (30, 40, 60, 70, etc.)
-    if (!data.response && data.code !== ApiErrorCode.SUCCESS) {
-      // Throw object containing HTTP status and API error details
-      const error = {
-        status: response.status !== 200 ? response.status : 406,
-        ...data,
-      };
-      throw error;
+    if (response.status === 200 || response.status === 406) {
+      const data = await response.json();
+      try {
+        return data as T;
+      } catch (error) {
+        if (typeof data === "object" && data !== null) {
+          if (data.code !== null && typeof data.code === "string") {
+            data.code = "5000"; //set undefined error code
+            return data as T;
+          }
+        }
+      } //catch
     }
 
     // HTTP error cases
-    if (!response.ok) {
-      const error = {
-        status: response.status,
-        code: response.statusText,
-        description: "HTTP Error",
-      };
-      throw error;
-    }
-
-    return data as T;
+    throw {
+      status: response.status,
+      code: response.statusText,
+      description: "HTTP Error",
+    };
   }
 }
 
