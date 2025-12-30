@@ -3,7 +3,15 @@
  * @description Netgsm SMS API client implementation
  */
 
-import { ApiErrorCode } from "./enums";
+import {
+  SendSmsErrorCode,
+  SendOtpSmsErrorCode,
+  CancelErrorCode,
+  ReportErrorCode,
+  StatsErrorCode,
+  MsgHeaderErrorCode,
+  InboxErrorCode,
+} from "./enums";
 import {
   NetgsmConfig,
   ReportPayload,
@@ -18,7 +26,30 @@ import {
   SmsInboxPayload,
   RestSmsPayload,
   RestSmsResponse,
+  OtpSmsPayload,
+  OtpSmsResponse,
+  StatsPayload,
+  StatsResponse,
 } from "./types";
+
+/**
+ * Validates if a code exists in an enum, returns "5000" if not found
+ * @param code - The code to validate
+ * @param enumObj - The enum object to check against (optional)
+ * @returns Valid code or "5000" for undefined errors
+ */
+function normalizeErrorCode(code: string | undefined | null, enumObj?: object): string {
+  if (!code || typeof code !== "string") {
+    return "5000";
+  }
+
+  // If enum provided, check if code exists in enum values
+  if (enumObj && !Object.values(enumObj).includes(code)) {
+    return "5000";
+  }
+
+  return code;
+}
 
 /**
  * Netgsm API Client
@@ -91,7 +122,31 @@ class Netgsm {
       }),
     });
 
-    return await this.handleResponse<RestSmsResponse>(response);
+    return await this.handleResponse<RestSmsResponse>(response, SendSmsErrorCode);
+  }
+
+  /**
+   * Send OTP SMS using REST v2 API
+   * @param {OtpSmsPayload} payload - JSON payload for sending OTP SMS.
+   * @returns {Promise<OtpSmsResponse>} - The API response.
+   */
+  async sendOtpSms(payload: OtpSmsPayload): Promise<OtpSmsResponse> {
+    const response = await fetch(`${this.baseURL}/sms/rest/v2/otp`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        msgheader: payload.msgheader,
+        ...(payload?.appname
+          ? { appname: payload.appname }
+          : this.sdkAppName
+            ? { appname: this.sdkAppName }
+            : {}),
+        msg: payload.msg,
+        no: payload.no,
+      }),
+    });
+
+    return await this.handleResponse<OtpSmsResponse>(response, SendOtpSmsErrorCode);
   }
 
   /**
@@ -113,19 +168,7 @@ class Netgsm {
       }),
     });
 
-    const data = await response.json();
-
-    // cancelSms için özel hata kontrolü
-    if (data.code && data.code !== ApiErrorCode.SUCCESS && data.code !== "00") {
-      throw {
-        status: response.status !== 200 ? response.status : 406,
-        code: data.code,
-        jobid: data.jobid || null,
-        description: data.description || "API Error",
-      };
-    }
-
-    return data as CancelSmsResponse;
+    return await this.handleResponse<CancelSmsResponse>(response, CancelErrorCode);
   }
 
   /**
@@ -147,7 +190,26 @@ class Netgsm {
       }),
     });
 
-    return await this.handleResponse<ReportResponse>(response);
+    return await this.handleResponse<ReportResponse>(response, ReportErrorCode);
+  }
+
+  /**
+   * Get SMS statistics using REST v2 API
+   * @param {StatsPayload} payload - JSON payload for fetching SMS report.
+   * @returns {Promise<StatsResponse>} - The API response containing report details.
+   */
+  async getStats(payload: StatsPayload): Promise<StatsResponse> {
+    const response = await fetch(`${this.baseURL}/sms/rest/v2/stats`, {
+      method: "POST",
+      headers: this.headers,
+      body: JSON.stringify({
+        jobid: payload.jobid,
+        sendDate: payload?.senddate,
+        appname: payload?.appname || this.sdkAppName,
+      }),
+    });
+
+    return await this.handleResponse<StatsResponse>(response, StatsErrorCode);
   }
 
   /**
@@ -167,7 +229,7 @@ class Netgsm {
       headers: this.headers,
     });
 
-    return await this.handleResponse<HeaderQueryResponse>(response);
+    return await this.handleResponse<HeaderQueryResponse>(response, MsgHeaderErrorCode);
   }
 
   /**
@@ -195,7 +257,7 @@ class Netgsm {
       headers: this.headers,
     });
 
-    return await this.handleResponse<SmsInboxResponse>(response);
+    return await this.handleResponse<SmsInboxResponse>(response, InboxErrorCode);
   }
 
   /**
@@ -231,35 +293,52 @@ class Netgsm {
     return data;
   }
 
-  private async handleResponse<T>(response: Response): Promise<T> {
-    const data = await response.json();
+  private async handleResponse<T>(response: Response, errorCodeEnum?: object): Promise<T> {
+    // Try to parse JSON response
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      // If JSON parsing fails, throw HTTP error
+      throw {
+        status: response.status,
+        code: "PARSE_ERROR",
+        description: `Failed to parse JSON response: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
 
-    // Successful report response case
-    if (data.response?.job || data.jobid || response.status === 200) {
+    // Check if response is success status
+    if (response.status === 200 || response.status === 406) {
+      // Validate data structure
+      if (typeof data !== "object" || data === null) {
+        throw {
+          status: response.status,
+          code: "INVALID_RESPONSE",
+          description: "Response is not a valid object",
+        };
+      }
+
+      // Normalize error code - if code is missing or not in enum, set to "5000"
+      data.code = normalizeErrorCode(data.code, errorCodeEnum);
+
+      // Check if API returned an error code
+      if (data.code !== "00") {
+        throw {
+          status: response.status !== 200 ? response.status : 406,
+          ...data,
+        };
+      }
+
+      // Success case
       return data as T;
     }
 
-    // API error codes (30, 40, 60, 70, etc.)
-    if (!data.response && data.code !== ApiErrorCode.SUCCESS) {
-      // Throw object containing HTTP status and API error details
-      const error = {
-        status: response.status !== 200 ? response.status : 406,
-        ...data,
-      };
-      throw error;
-    }
-
-    // HTTP error cases
-    if (!response.ok) {
-      const error = {
-        status: response.status,
-        code: response.statusText,
-        description: "HTTP Error",
-      };
-      throw error;
-    }
-
-    return data as T;
+    // HTTP error cases (non-200/406 status codes)
+    throw {
+      status: response.status,
+      code: normalizeErrorCode(data?.code, errorCodeEnum) || response.statusText,
+      description: data?.description || "HTTP Error",
+    };
   }
 }
 

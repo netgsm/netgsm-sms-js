@@ -1,6 +1,16 @@
 import { config } from "dotenv";
 
-import { BalanceType, SmsStatus } from "../../src/enums";
+import {
+  BalanceType,
+  SmsStatus,
+  SendSmsErrorCode,
+  SendOtpSmsErrorCode,
+  ReportErrorCode,
+  CancelErrorCode,
+  InboxErrorCode,
+  MsgHeaderErrorCode,
+  BalanceErrorCode,
+} from "../../src/enums";
 import Netgsm from "../../src/netgsm";
 
 config();
@@ -28,7 +38,7 @@ describe("Netgsm Integration Tests", () => {
       stip: BalanceType.CREDIT,
     });
 
-    expect(balanceResponse.code).toBe("00");
+    expect(balanceResponse.code).toBe(BalanceErrorCode.SUCCESS);
     expect(balanceResponse.balance).toBeDefined();
     // eslint-disable-next-line no-console
     console.log(`Mevcut kredi: ${balanceResponse.balance}`);
@@ -38,7 +48,7 @@ describe("Netgsm Integration Tests", () => {
   it("should list message headers", async () => {
     const headersResponse = await netgsm.getHeaders();
 
-    expect(headersResponse.code).toBe("00");
+    expect(headersResponse.code).toBe(MsgHeaderErrorCode.SUCCESS);
     expect(headersResponse.msgheaders).toBeDefined();
     expect(Array.isArray(headersResponse.msgheaders)).toBeTruthy();
 
@@ -85,7 +95,7 @@ describe("Netgsm Integration Tests", () => {
     };
 
     const smsResponse = await netgsm.sendRestSms(scheduledSmsPayload);
-    expect(smsResponse.code).toBe("00");
+    expect(smsResponse.code).toBe(SendSmsErrorCode.SUCCESS);
     expect(smsResponse.jobid).toBeTruthy();
 
     // Sonraki testlerde kullanmak için jobid'yi saklayalım
@@ -103,7 +113,7 @@ describe("Netgsm Integration Tests", () => {
     try {
       const cancelResponse = await netgsm.cancelSms(cancelPayload);
       // API başarılı yanıt vermeli
-      expect(cancelResponse.code).toBe("00");
+      expect(cancelResponse.code).toBe(CancelErrorCode.SUCCESS);
       // eslint-disable-next-line no-console
       console.log(`SMS iptal edildi: ${scheduledSmsJobId}`);
     } catch (error) {
@@ -131,7 +141,7 @@ describe("Netgsm Integration Tests", () => {
     };
 
     const smsResponse = await netgsm.sendRestSms(instantSmsPayload);
-    expect(smsResponse.code).toBe("00");
+    expect(smsResponse.code).toBe(SendSmsErrorCode.SUCCESS);
     expect(smsResponse.jobid).toBeTruthy();
 
     // Sonraki testlerde kullanmak için jobid'yi saklayalım
@@ -148,13 +158,26 @@ describe("Netgsm Integration Tests", () => {
     // Önceki testte alınan jobid'nin tanımlı olduğundan emin olalım
     expect(instantSmsJobId).toBeTruthy();
 
+    // Format date as dd.MM.yyyy HH:mm:ss
+    const now = new Date();
+    const formatDateTime = (date: Date): string => {
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      const seconds = String(date.getSeconds()).padStart(2, "0");
+      return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+    };
+
     const reportPayload = {
       bulkIds: [instantSmsJobId],
-      startdate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
-      stopdate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+      startdate: formatDateTime(now),
+      stopdate: formatDateTime(now),
     };
 
     const report = await netgsm.getReport(reportPayload);
+    expect(report.code).toBe(ReportErrorCode.SUCCESS);
     expect(report.jobs).toBeDefined();
 
     if (report.jobs && report.jobs.length > 0) {
@@ -189,9 +212,9 @@ describe("Netgsm Integration Tests", () => {
 
       // API "00" (başarılı) veya "40" (mesaj bulunamadı) dönebilir
       // Her iki durum da geçerli test sonuçlarıdır
-      expect(["00", "40"]).toContain(inboxResponse.code);
+      expect([InboxErrorCode.SUCCESS, InboxErrorCode.NO_MESSAGES]).toContain(inboxResponse.code);
 
-      if (inboxResponse.code === "00" && inboxResponse.messages) {
+      if (inboxResponse.code === InboxErrorCode.SUCCESS && inboxResponse.messages) {
         // eslint-disable-next-line no-console
         console.log(`Gelen kutusu mesaj sayısı: ${inboxResponse.messages.length}`);
       } else {
@@ -201,9 +224,78 @@ describe("Netgsm Integration Tests", () => {
     } catch (error) {
       // Hata durumunda, hata kodunun "40" olduğunu kontrol et
       // "40" kodu "Gelen SMS bulunamadı" anlamına gelir ve bu bir hata değildir
-      expect((error as { code: string }).code).toBe("40");
+      expect((error as { code: string }).code).toBe(InboxErrorCode.NO_MESSAGES);
       // eslint-disable-next-line no-console
       console.log("Gelen kutusunda mesaj bulunamadı (beklenen durum)");
     }
+  }, 10000);
+
+  // 8. OTP SMS gönderimi
+  it("should send OTP SMS", async () => {
+    const otpSmsPayload = {
+      msgheader: process.env.NETGSM_MESSAGE_HEADER || "TEST",
+      msg: "OTP test mesajı",
+      no: process.env.TEST_PHONE_NUMBER || "",
+    };
+
+    const smsResponse = await netgsm.sendOtpSms(otpSmsPayload);
+
+    expect(smsResponse.code).toBe(SendOtpSmsErrorCode.SUCCESS);
+    expect(smsResponse.jobId).toBeTruthy();
+    const otpSmsJobId = smsResponse.jobId || "";
+    // eslint-disable-next-line no-console
+    console.log(`OTP SMS jobid: ${otpSmsJobId}`);
+
+    // SMS işlenmesi için bekleyelim
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }, 10000);
+
+  // 9. OTP SMS gönderimi uzun mesaj hatasi
+  it("should send long OTP SMS", async () => {
+    const otpSmsPayload = {
+      msgheader: process.env.NETGSM_MESSAGE_HEADER || "TEST",
+      msg: "OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesajOTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj",
+      no: process.env.TEST_PHONE_NUMBER || "",
+    };
+
+    try {
+      await netgsm.sendOtpSms(otpSmsPayload);
+      // Eğer hata fırlatılmadıysa, test başarısız olmalı
+      fail("Expected an error to be thrown");
+    } catch (error) {
+      // Hata bekleniyor - uzun mesaj hatası
+      expect((error as { code: string }).code).toBe(SendOtpSmsErrorCode.MESSAGE_TEXT_ERROR);
+      expect((error as { status: number }).status).toBe(406);
+      // eslint-disable-next-line no-console
+      console.log("Uzun mesaj hatası yakalandı (beklenen durum)");
+    }
+
+    // SMS işlenmesi için bekleyelim
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }, 10000);
+
+  // 10. OTP SMS gönderimi hatali numara hatasi
+  it("should wrong number OTP SMS", async () => {
+    const otpSmsPayload = {
+      msgheader: process.env.NETGSM_MESSAGE_HEADER || "TEST",
+      msg: "OTP test mesaj",
+      no: process.env.TEST_PHONE_NUMBER + "99999999" || "9999999999999999999999",
+    };
+
+    try {
+      await netgsm.sendOtpSms(otpSmsPayload);
+      // Eğer hata fırlatılmadıysa, test başarısız olmalı
+      fail("Expected an error to be thrown");
+    } catch (error) {
+      // Hata bekleniyor
+      expect((error as { code: string }).code).toBe(SendOtpSmsErrorCode.CHECK_NUMBER_50);
+      expect((error as { status: number }).status).toBe(406);
+      expect((error as { description: string }).description).toBe("number format");
+      // eslint-disable-next-line no-console
+      console.log("Hatalı numara hatası yakalandı (beklenen durum)");
+    }
+
+    // SMS işlenmesi için bekleyelim
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   }, 10000);
 });
