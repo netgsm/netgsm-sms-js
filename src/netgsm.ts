@@ -4,6 +4,15 @@
  */
 
 import {
+  SendSmsErrorCode,
+  SendOtpSmsErrorCode,
+  CancelErrorCode,
+  ReportErrorCode,
+  StatsErrorCode,
+  MsgHeaderErrorCode,
+  InboxErrorCode,
+} from "./enums";
+import {
   NetgsmConfig,
   ReportPayload,
   ReportResponse,
@@ -22,17 +31,6 @@ import {
   StatsPayload,
   StatsResponse,
 } from "./types";
-
-import {
-  SendSmsErrorCode,
-  SendOtpSmsErrorCode,
-  CancelErrorCode,
-  ReportErrorCode,
-  StatsErrorCode,
-  MsgHeaderErrorCode,
-  InboxErrorCode,
-  BalanceErrorCode,
-} from "./enums";
 
 /**
  * Validates if a code exists in an enum, returns "5000" if not found
@@ -305,7 +303,7 @@ class Netgsm {
       throw {
         status: response.status,
         code: "PARSE_ERROR",
-        description: `Failed to parse JSON response: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: `Failed to parse JSON response: ${error instanceof Error ? error.message : "Unknown error"}`,
       };
     }
 

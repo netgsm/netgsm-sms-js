@@ -1,7 +1,16 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import fetchMock from "jest-fetch-mock";
 
-import { ApiErrorCode, BalanceType, CancelErrorCode, MsgHeaderErrorCode, OperatorCode, SendSmsErrorCode, ReportErrorCode, InboxErrorCode, BalanceErrorCode } from "../../src/enums";
+import {
+  BalanceType,
+  CancelErrorCode,
+  MsgHeaderErrorCode,
+  OperatorCode,
+  SendSmsErrorCode,
+  ReportErrorCode,
+  InboxErrorCode,
+  BalanceErrorCode,
+} from "../../src/enums";
 import Netgsm from "../../src/netgsm";
 
 fetchMock.enableMocks();
@@ -339,7 +348,6 @@ describe("Netgsm Unit Tests", () => {
         code: MsgHeaderErrorCode.PARAMETER_ERROR,
         description: "msgheader not found",
       });
-
     });
 
     it("should handle header query API errors", async () => {
