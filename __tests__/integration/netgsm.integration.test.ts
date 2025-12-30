@@ -158,10 +158,22 @@ describe("Netgsm Integration Tests", () => {
     // Önceki testte alınan jobid'nin tanımlı olduğundan emin olalım
     expect(instantSmsJobId).toBeTruthy();
 
+    // Format date as dd.MM.yyyy HH:mm:ss
+    const now = new Date();
+    const formatDateTime = (date: Date): string => {
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      const seconds = String(date.getSeconds()).padStart(2, "0");
+      return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+    };
+
     const reportPayload = {
       bulkIds: [instantSmsJobId],
-      startdate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
-      stopdate: new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+      startdate: formatDateTime(now),
+      stopdate: formatDateTime(now),
     };
 
     const report = await netgsm.getReport(reportPayload);
@@ -246,9 +258,17 @@ describe("Netgsm Integration Tests", () => {
       no: process.env.TEST_PHONE_NUMBER || "",
     };
 
-    const smsResponse = await netgsm.sendOtpSms(otpSmsPayload);
-
-    expect(smsResponse.code).toBe(SendOtpSmsErrorCode.MESSAGE_TEXT_ERROR);
+    try {
+      await netgsm.sendOtpSms(otpSmsPayload);
+      // Eğer hata fırlatılmadıysa, test başarısız olmalı
+      fail("Expected an error to be thrown");
+    } catch (error) {
+      // Hata bekleniyor - uzun mesaj hatası
+      expect((error as { code: string }).code).toBe(SendOtpSmsErrorCode.MESSAGE_TEXT_ERROR);
+      expect((error as { status: number }).status).toBe(406);
+      // eslint-disable-next-line no-console
+      console.log("Uzun mesaj hatası yakalandı (beklenen durum)");
+    }
 
     // SMS işlenmesi için bekleyelim
     await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -262,9 +282,18 @@ describe("Netgsm Integration Tests", () => {
       no: process.env.TEST_PHONE_NUMBER + "99999999" || "9999999999999999999999",
     };
 
-    const smsResponse = await netgsm.sendOtpSms(otpSmsPayload);
-
-    expect(smsResponse.code).toBe(SendOtpSmsErrorCode.CHECK_NUMBER_50);
+    try {
+      await netgsm.sendOtpSms(otpSmsPayload);
+      // Eğer hata fırlatılmadıysa, test başarısız olmalı
+      fail("Expected an error to be thrown");
+    } catch (error) {
+      // Hata bekleniyor
+      expect((error as { code: string }).code).toBe(SendOtpSmsErrorCode.CHECK_NUMBER_50);
+      expect((error as { status: number }).status).toBe(406);
+      expect((error as { description: string }).description).toBe("number format");
+      // eslint-disable-next-line no-console
+      console.log("Hatalı numara hatası yakalandı (beklenen durum)");
+    }
 
     // SMS işlenmesi için bekleyelim
     await new Promise((resolve) => setTimeout(resolve, 5000));
