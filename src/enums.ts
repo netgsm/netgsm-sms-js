@@ -25,7 +25,7 @@ export enum SmsStatus {
   /** Duplicate message */
   DUPLICATE = 13,
   /** Insuficient credit */
-  INSUFFICIENT_BALANCE = 14,  
+  INSUFFICIENT_BALANCE = 14,
   /** Blacklisted number */
   BLACKLISTED = 15,
   /** IYS rejected */

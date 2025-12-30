@@ -7,7 +7,7 @@ import {
   MsgHeaderErrorCode,
   BalanceType,
   BalanceErrorCode,
-  StatsErrorCode
+  StatsErrorCode,
 } from "./enums";
 
 /**
@@ -125,7 +125,7 @@ export interface ReportResponse {
  */
 export interface StatsPayload {
   jobid: string;
-  senddate?: string; // Optional senddate 
+  senddate?: string; // Optional senddate
   appname?: string; // Optional application key
 }
 
@@ -136,15 +136,14 @@ export interface StatsResponse {
   code?: StatsErrorCode;
   description: string;
   stats?: {
-    status: string,
-    totalMessageLength: number,
-    totalSms: number,
-    chargeStatement: string,
-    statement: string,
-    domestic: true
+    status: string;
+    totalMessageLength: number;
+    totalSms: number;
+    chargeStatement: string;
+    statement: string;
+    domestic: true;
   }[];
 }
-
 
 /**
  * Payload for querying sender IDs/headers

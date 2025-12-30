@@ -20,7 +20,7 @@ import {
   OtpSmsPayload,
   OtpSmsResponse,
   StatsPayload,
-  StatsResponse,  
+  StatsResponse,
 } from "./types";
 
 /**
@@ -176,7 +176,7 @@ class Netgsm {
       headers: this.headers,
       body: JSON.stringify({
         jobid: payload.jobid,
-        sendDate: payload?.senddate,        
+        sendDate: payload?.senddate,
         appname: payload?.appname || this.sdkAppName,
       }),
     });
