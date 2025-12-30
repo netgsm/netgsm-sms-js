@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import fetchMock from "jest-fetch-mock";
 
-import { ApiErrorCode, BalanceType, OperatorCode } from "../../src/enums";
+import { ApiErrorCode, BalanceType, CancelErrorCode, MsgHeaderErrorCode, OperatorCode, SendSmsErrorCode, ReportErrorCode, InboxErrorCode, BalanceErrorCode } from "../../src/enums";
 import Netgsm from "../../src/netgsm";
 
 fetchMock.enableMocks();
@@ -31,7 +31,7 @@ describe("Netgsm Unit Tests", () => {
     it("should send SMS successfully using REST v2 API", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "00",
+          code: SendSmsErrorCode.SUCCESS,
           jobid: "12345",
           description: "Success",
         })
@@ -40,7 +40,7 @@ describe("Netgsm Unit Tests", () => {
       const response = await netgsm.sendRestSms(validPayload);
 
       expect(response).toEqual({
-        code: "00",
+        code: SendSmsErrorCode.SUCCESS,
         jobid: "12345",
         description: "Success",
       });
@@ -57,7 +57,7 @@ describe("Netgsm Unit Tests", () => {
 
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "00",
+          code: SendSmsErrorCode.SUCCESS,
           jobid: "12345,12346",
           description: "Success",
         })
@@ -70,7 +70,7 @@ describe("Netgsm Unit Tests", () => {
     it("should handle API errors with status code for REST v2 API", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "40",
+          code: SendSmsErrorCode.INVALID_HEADER,
           jobid: null,
           description: "Check the msgheader parameter",
         }),
@@ -85,7 +85,7 @@ describe("Netgsm Unit Tests", () => {
 
       await expect(netgsm.sendRestSms(validPayload)).rejects.toEqual({
         status: 406,
-        code: "40",
+        code: SendSmsErrorCode.INVALID_HEADER,
         jobid: null,
         description: "Check the msgheader parameter",
       });
@@ -96,6 +96,54 @@ describe("Netgsm Unit Tests", () => {
 
       await expect(netgsm.sendRestSms(validPayload)).rejects.toThrow("Network error");
     });
+
+    it("should normalize unknown error codes to 5000", async () => {
+      fetchMock.mockResponseOnce(
+        JSON.stringify({
+          code: "999", // Unknown code not in SendSmsErrorCode enum
+          jobid: null,
+          description: "Unknown error",
+        }),
+        {
+          status: 406,
+          statusText: "Not Acceptable",
+          headers: {
+            "content-type": "application/json;charset=UTF-8",
+          },
+        }
+      );
+
+      await expect(netgsm.sendRestSms(validPayload)).rejects.toEqual({
+        status: 406,
+        code: SendSmsErrorCode.UNDEFINED_ERROR, // Should be normalized to UNDEFINED_ERROR
+        jobid: null,
+        description: "Unknown error",
+      });
+    });
+
+    it("should normalize missing error codes to 5000", async () => {
+      fetchMock.mockResponseOnce(
+        JSON.stringify({
+          // No code field
+          jobid: null,
+          description: "Error without code",
+        }),
+        {
+          status: 406,
+          statusText: "Not Acceptable",
+          headers: {
+            "content-type": "application/json;charset=UTF-8",
+          },
+        }
+      );
+
+      await expect(netgsm.sendRestSms(validPayload)).rejects.toEqual({
+        status: 406,
+        code: SendSmsErrorCode.UNDEFINED_ERROR, // Should be normalized to UNDEFINED_ERROR
+        jobid: null,
+        description: "Error without code",
+      });
+    });
   });
 
   describe("cancelSms", () => {
@@ -104,7 +152,7 @@ describe("Netgsm Unit Tests", () => {
     it("should cancel SMS successfully", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "00",
+          code: CancelErrorCode.SUCCESS,
           jobid: "12345",
           description: "Success",
         })
@@ -112,7 +160,7 @@ describe("Netgsm Unit Tests", () => {
 
       const result = await netgsm.cancelSms(validPayload);
       expect(result).toEqual({
-        code: "00",
+        code: CancelErrorCode.SUCCESS,
         jobid: "12345",
         description: "Success",
       });
@@ -121,7 +169,7 @@ describe("Netgsm Unit Tests", () => {
     it("should handle API errors when cancelling SMS", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "60",
+          code: CancelErrorCode.JOB_ID_NOT_FOUND,
           jobid: "12345",
           description: "Error occurred",
         })
@@ -129,7 +177,7 @@ describe("Netgsm Unit Tests", () => {
 
       await expect(netgsm.cancelSms(validPayload)).rejects.toEqual({
         status: 406,
-        code: "60",
+        code: CancelErrorCode.JOB_ID_NOT_FOUND,
         jobid: "12345",
         description: "Error occurred",
       });
@@ -154,7 +202,7 @@ describe("Netgsm Unit Tests", () => {
     it("should fetch report successfully using REST v2 API", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "00",
+          code: ReportErrorCode.SUCCESS,
           description: "Success",
           jobs: [
             {
@@ -183,7 +231,7 @@ describe("Netgsm Unit Tests", () => {
 
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "00",
+          code: ReportErrorCode.SUCCESS,
           description: "Success",
           jobs: [
             { jobid: "12345", status: 0, number: "5551234567", operator: OperatorCode.TURKCELL },
@@ -201,7 +249,7 @@ describe("Netgsm Unit Tests", () => {
     it("should handle empty report response using REST v2 API", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "00",
+          code: ReportErrorCode.SUCCESS,
           description: "Success",
           jobs: [],
         })
@@ -214,7 +262,7 @@ describe("Netgsm Unit Tests", () => {
     it("should handle report API errors with status code using REST v2 API", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "80",
+          code: ReportErrorCode.PARAMETER_ERROR,
           description: "Invalid date format",
         }),
         {
@@ -228,7 +276,7 @@ describe("Netgsm Unit Tests", () => {
 
       await expect(netgsm.getReport(validPayload)).rejects.toEqual({
         status: 406,
-        code: "80",
+        code: ReportErrorCode.PARAMETER_ERROR,
         description: "Invalid date format",
       });
     });
@@ -238,7 +286,9 @@ describe("Netgsm Unit Tests", () => {
     it("should fetch headers successfully", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
+          code: MsgHeaderErrorCode.SUCCESS,
           msgheaders: ["HEADER1", "HEADER2"],
+          describtion: "Success",
         })
       );
 
@@ -251,7 +301,9 @@ describe("Netgsm Unit Tests", () => {
     it("should fetch multiple headers successfully", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
+          code: MsgHeaderErrorCode.SUCCESS,
           msgheaders: ["HEADER1", "HEADER2", "HEADER3"],
+          describtion: "Success",
         })
       );
 
@@ -263,7 +315,9 @@ describe("Netgsm Unit Tests", () => {
     it("should fetch headers without appname", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
+          code: MsgHeaderErrorCode.SUCCESS,
           msgheaders: ["HEADER1"],
+          describtion: "Success",
         })
       );
 
@@ -275,18 +329,23 @@ describe("Netgsm Unit Tests", () => {
     it("should handle empty header response", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          msgheaders: [],
+          code: MsgHeaderErrorCode.PARAMETER_ERROR,
+          description: "msgheader not found",
         })
       );
 
-      const response = await netgsm.getHeaders();
-      expect(response.msgheaders?.length).toBe(0);
+      await expect(netgsm.getHeaders()).rejects.toEqual({
+        status: 406,
+        code: MsgHeaderErrorCode.PARAMETER_ERROR,
+        description: "msgheader not found",
+      });
+
     });
 
     it("should handle header query API errors", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: ApiErrorCode.INVALID_AUTH,
+          code: MsgHeaderErrorCode.INVALID_AUTH,
           description: "Invalid authentication",
         }),
         {
@@ -300,7 +359,7 @@ describe("Netgsm Unit Tests", () => {
 
       await expect(netgsm.getHeaders()).rejects.toEqual({
         status: 406,
-        code: ApiErrorCode.INVALID_AUTH,
+        code: MsgHeaderErrorCode.INVALID_AUTH,
         description: "Invalid authentication",
       });
     });
@@ -310,7 +369,7 @@ describe("Netgsm Unit Tests", () => {
     it("should fetch inbox messages successfully", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "00",
+          code: InboxErrorCode.SUCCESS,
           description: "Success",
           messages: [
             {
@@ -337,7 +396,7 @@ describe("Netgsm Unit Tests", () => {
     it("should fetch multiple inbox messages successfully", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "00",
+          code: InboxErrorCode.SUCCESS,
           description: "Success",
           messages: [
             {
@@ -369,7 +428,7 @@ describe("Netgsm Unit Tests", () => {
     it("should handle empty inbox response", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "00",
+          code: InboxErrorCode.SUCCESS,
           description: "Success",
           messages: [],
         })
@@ -386,7 +445,7 @@ describe("Netgsm Unit Tests", () => {
     it("should handle inbox query API errors", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: "80",
+          code: InboxErrorCode.PARAMETER_ERROR,
           description: "Invalid date format",
         }),
         {
@@ -405,7 +464,7 @@ describe("Netgsm Unit Tests", () => {
         })
       ).rejects.toEqual({
         status: 406,
-        code: "80",
+        code: InboxErrorCode.PARAMETER_ERROR,
         description: "Invalid date format",
       });
     });
@@ -465,7 +524,7 @@ describe("Netgsm Unit Tests", () => {
     it("should fetch credit information successfully", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: ApiErrorCode.SUCCESS,
+          code: BalanceErrorCode.SUCCESS,
           balance: "57,860",
         })
       );
@@ -473,14 +532,14 @@ describe("Netgsm Unit Tests", () => {
       const response = await netgsm.checkBalance({
         stip: BalanceType.CREDIT,
       });
-      expect(response.code).toBe(ApiErrorCode.SUCCESS);
+      expect(response.code).toBe(BalanceErrorCode.SUCCESS);
       expect(response.balance).toBe("57,860");
     });
 
     it("should handle API errors", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          code: ApiErrorCode.INVALID_AUTH,
+          code: BalanceErrorCode.INVALID_AUTH,
           description: "Invalid authentication",
         }),
         {
@@ -494,7 +553,7 @@ describe("Netgsm Unit Tests", () => {
 
       await expect(netgsm.checkBalance({ stip: BalanceType.PACKAGE })).rejects.toEqual({
         status: 406,
-        code: ApiErrorCode.INVALID_AUTH,
+        code: BalanceErrorCode.INVALID_AUTH,
         description: "Invalid authentication",
       });
     });
