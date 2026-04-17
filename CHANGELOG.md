@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file. See [standa
   - `setWebhook` — register a webhook URL for consent updates
 - Modular architecture: all SMS methods now available under `netgsm.sms`
 - New IYS enums exported from package root: `IysRecipientType`, `IysAddressType`, `IysConsentStatus`, `IysSource`
-- `SmsEncoding` enum for `encoding` field in `RestSmsPayload` (replaces plain string)
+- `SmsEncoding` enum for `encoding` field in `RestSmsPayload` (`DEFAULT=0`, `UNICODE=8`, `TR=11`)
 - `IysFilter` enum for `iysfilter` field in `RestSmsPayload` (`NONE`, `COMMERCIAL_INDIVIDUAL`, `COMMERCIAL_MERCHANT`)
 - `StatsErrorCode` added to package exports (was missing)
 - `src/constants.ts` centralizing base URLs for all modules

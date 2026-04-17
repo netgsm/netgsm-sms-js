@@ -143,7 +143,7 @@ const netgsm = new Netgsm({
 ```javascript
 const response = await netgsm.sms.send({
   msgheader: 'YOUR_HEADER',
-  encoding: SmsEncoding.TR,    // Optional, for Turkish character support
+  encoding: SmsEncoding.TR,    // Optional: DEFAULT (0), UNICODE (8), TR (11)
   startdate: '010620241530',   // Optional (format: ddMMyyyyHHmm)
   stopdate: '010620241630',    // Optional (format: ddMMyyyyHHmm)
   messages: [

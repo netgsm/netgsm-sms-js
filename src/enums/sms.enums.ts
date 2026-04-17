@@ -264,10 +264,15 @@ export enum OperatorCode {
 
 /**
  * SMS message encoding types
- * @enum {string}
+ * @enum {number}
  */
 export enum SmsEncoding {
-  TR = "TR",
+  /** Default encoding (English/Latin characters) */
+  DEFAULT = 0,
+  /** Unicode (UCS-2) encoding */
+  UNICODE = 8,
+  /** Turkish character support */
+  TR = 11,
 }
 
 export enum IysFilter {
