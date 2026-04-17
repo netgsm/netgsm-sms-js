@@ -7,7 +7,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 [![Downloads](https://img.shields.io/npm/dm/@netgsm/sms.svg)](https://www.npmjs.com/package/@netgsm/sms)
 
-Official Node.js client for the Netgsm SMS API. This package enables you to easily use Netgsm SMS services in your Node.js applications.
+Official Node.js client for the Netgsm SMS API. This package enables you to easily use Netgsm SMS and IYS services in your Node.js applications.
 
 ## Table of Contents
 
@@ -17,6 +17,9 @@ Official Node.js client for the Netgsm SMS API. This package enables you to easi
 - [Quick Start](#quick-start)
 - [Usage Examples](#usage-examples)
 - [API Reference](#api-reference)
+  - [SMS](#sms)
+  - [IYS](#iys)
+- [Migrating from 1.x](#migrating-from-1x)
 - [Development](#development)
 - [Contributing](#contributing)
 - [License](#license)
@@ -25,14 +28,15 @@ Official Node.js client for the Netgsm SMS API. This package enables you to easi
 
 ## Features
 
-- OTP SMS
 - SMS sending (instant and scheduled)
 - Bulk SMS sending (different messages for each recipient)
-- SMS report querying
+- OTP SMS
+- SMS report and stats querying
 - Message header listing
 - Balance querying
 - Inbox message listing
 - Canceling scheduled SMS
+- **IYS (İleti Yönetim Sistemi) consent management**
 - TypeScript support
 - Comprehensive error handling
 
@@ -60,71 +64,50 @@ yarn add @netgsm/sms
 ### CommonJS usage
 
 ```javascript
-// Option 1: Named imports
-const { Netgsm, SmsStatus, BalanceType } = require('@netgsm/sms');
+const { Netgsm, SmsEncoding } = require('@netgsm/sms');
 
-// Option 2: Default import
-const Netgsm = require('@netgsm/sms').default;
-// or
-const { default: Netgsm } = require('@netgsm/sms');
-
-// Configure Netgsm client
 const netgsm = new Netgsm({
   username: 'YOUR_USERNAME',
   password: 'YOUR_PASSWORD',
   appname: 'YOUR_APP_NAME' // Optional
 });
 
-// Send SMS
 async function sendSms() {
   try {
-    const response = await netgsm.sendRestSms({
-      msgheader: 'YOUR_HEADER', // SMS header
-      encoding: 'TR', // Turkish character support
-      startdate: '010620241530',       // Optional (format: ddMMyyyyHHmm)
-      stopdate: '010620241630',        // Optional (format: ddMMyyyyHHmm)
+    const response = await netgsm.sms.send({
+      msgheader: 'YOUR_HEADER',
+      encoding: SmsEncoding.TR,
       messages: [
-        { msg: 'Message content', no: '5XXXXXXXXX' },
-        { msg: 'Message content', no: '5YYYYYYYYY' }
+        { msg: 'Message content', no: '5XXXXXXXXX' }
       ]
     });
-    
-    console.log('SMS sent:', response);
-    return response.jobid;
+
+    console.log('SMS sent:', response.jobid);
   } catch (error) {
     console.error('Error:', error);
   }
 }
-
-// Call the function
-sendSms();
 ```
 
 ### ES Modules / TypeScript usage
 
 ```typescript
-// Option 1: Default import (recommended)
 import Netgsm from '@netgsm/sms';
 
-// Option 2: Named imports
-import { Netgsm, SmsStatus, BalanceType } from '@netgsm/sms';
-
-// Configure Netgsm client
 const netgsm = new Netgsm({
   username: 'YOUR_USERNAME',
   password: 'YOUR_PASSWORD',
   appname: 'YOUR_APP_NAME' // Optional
 });
 
-// Type-safe usage
-async function checkBalance() {
+async function sendSms() {
   try {
-    const balance = await netgsm.checkBalance({
-      type: BalanceType.CREDIT
+    const response = await netgsm.sms.send({
+      msgheader: 'YOUR_HEADER',
+      messages: [{ msg: 'Hello!', no: '5XXXXXXXXX' }]
     });
-    
-    console.log('Balance:', balance);
-    return balance;
+
+    console.log('SMS sent:', response.jobid);
   } catch (error) {
     console.error('Error:', error);
   }
@@ -138,26 +121,29 @@ For more examples, check the [examples](./examples) directory:
 - [Basic Usage](./examples/basic-usage.js)
 - [Scheduled SMS](./examples/advanced/scheduled-sms.js)
 - [Bulk SMS](./examples/advanced/bulk-sms.js)
-- [Additional Examples](./examples/advanced/additional-examples.js) (Future-dated, multiple numbers, end-dated, Turkish character support, and IYS filtered deliveries)
+- [Additional Examples](./examples/advanced/additional-examples.js)
+- [IYS Consent Management](./examples/advanced/iys-consent.js)
 
 ## API Reference
 
-### Configuration
+### SMS
+
+#### Configuration
 
 ```javascript
 const netgsm = new Netgsm({
   username: 'YOUR_USERNAME', // Required
-  password: 'YOUR_PASSWORD',  // Required
-  appname: 'YOUR_APP_NAME'    // Optional
+  password: 'YOUR_PASSWORD', // Required
+  appname: 'YOUR_APP_NAME'   // Optional
 });
 ```
 
-### Sending SMS
+#### Sending SMS
 
 ```javascript
-const response = await netgsm.sendRestSms({
+const response = await netgsm.sms.send({
   msgheader: 'YOUR_HEADER',
-  encoding: 'TR',              // TR, ASCII
+  encoding: SmsEncoding.TR,    // Optional: DEFAULT (0), UNICODE (8), TR (11)
   startdate: '010620241530',   // Optional (format: ddMMyyyyHHmm)
   stopdate: '010620241630',    // Optional (format: ddMMyyyyHHmm)
   messages: [
@@ -167,64 +153,129 @@ const response = await netgsm.sendRestSms({
 });
 ```
 
-### Sending OTP SMS
+#### Sending OTP SMS
 
 ```javascript
-const response = await netgsm.sendOtpSms({
-  msgheader: 'YOUR_HEADER',  
+const response = await netgsm.sms.sendOtp({
+  msgheader: 'YOUR_HEADER',
   msg: 'OTP Message content', // Max 160 char
-  no: '5XXXXXXXXX' 
+  no: '5XXXXXXXXX'
 });
 ```
 
-### Querying SMS Report
+#### Querying SMS Report
 
 ```javascript
-const report = await netgsm.getReport({
-  bulkIds: ['12345678'] // Job ID received after sending  
+const report = await netgsm.sms.getReport({
+  bulkIds: ['12345678'] // Job ID received after sending
 });
 ```
 
-### Querying SMS Stats
+#### Querying SMS Stats
 
 ```javascript
-const report = await netgsm.getStats({
-  jobid: '12345678' // Job ID received after sending  
+const stats = await netgsm.sms.getStats({
+  jobid: '12345678' // Job ID received after sending
 });
 ```
 
-### Checking Balance
+#### Checking Balance
 
 ```javascript
-const balance = await netgsm.getBalance({
-  type: BalanceType.CREDIT // 1: Package/campaign info, 2: Credit info
+import { BalanceType } from '@netgsm/sms';
+
+const balance = await netgsm.sms.checkBalance({
+  stip: BalanceType.CREDIT // CREDIT or PACKAGE
 });
 ```
 
-### Listing Headers
+#### Listing Headers
 
 ```javascript
-const headers = await netgsm.getHeaders();
+const headers = await netgsm.sms.getHeaders();
 ```
 
-### Listing Inbox Messages
+#### Listing Inbox Messages
 
 ```javascript
-const inbox = await netgsm.getInbox({
+const inbox = await netgsm.sms.getInbox({
   startdate: '01012024', // Start date (format: ddMMyyyy)
   stopdate: '31012024'   // End date (format: ddMMyyyy)
 });
 ```
 
-### Canceling Scheduled SMS
+#### Canceling Scheduled SMS
 
 ```javascript
-const cancelResult = await netgsm.cancelSms({
+const result = await netgsm.sms.cancel({
   jobid: '12345678' // Job ID of the delivery to cancel
 });
 ```
 
-For more detailed API reference, visit the [API Documentation](./docs/API.md) page.
+---
+
+### IYS
+
+IYS (İleti Yönetim Sistemi) consent management. Requires a brand code (`brandCode`) from your Netgsm account.
+
+#### Querying Consent Status
+
+```javascript
+import { IysAddressType, IysRecipientType } from '@netgsm/sms';
+
+const result = await netgsm.iys.queryConsent({
+  brandCode: 123456,
+  recipient: '+905XXXXXXXXX',
+  type: IysAddressType.MESAJ,         // Optional: MESAJ, ARAMA, EPOSTA
+  recipientType: IysRecipientType.BIREYSEL // Optional: BIREYSEL, TACIR
+});
+```
+
+#### Saving Consent
+
+```javascript
+import { IysAddressType, IysConsentStatus, IysRecipientType, IysSource } from '@netgsm/sms';
+
+const result = await netgsm.iys.saveConsents({
+  brandCode: 123456,
+  permissions: [
+    {
+      recipient: '+905XXXXXXXXX',
+      recipientType: IysRecipientType.BIREYSEL,
+      type: IysAddressType.MESAJ,
+      source: IysSource.HS_MESAJ,
+      status: IysConsentStatus.ONAY,
+      consentDate: '2026-01-01 12:00:00' // Format: YYYY-MM-DD HH:mm:ss
+    }
+  ]
+});
+```
+
+#### Registering a Webhook
+
+```javascript
+const result = await netgsm.iys.setWebhook({
+  brandCode: 123456,
+  webhookUrl: 'https://your-domain.com/iys-webhook'
+});
+```
+
+---
+
+## Migrating from 1.x
+
+In 2.0.0, all methods moved to dedicated modules (`netgsm.sms` and `netgsm.iys`). The top-level methods from 1.x are still available but deprecated — they will be removed in a future major version.
+
+| 1.x | 2.0 |
+|---|---|
+| `netgsm.sendRestSms(payload)` | `netgsm.sms.send(payload)` |
+| `netgsm.sendOtpSms(payload)` | `netgsm.sms.sendOtp(payload)` |
+| `netgsm.cancelSms(payload)` | `netgsm.sms.cancel(payload)` |
+| `netgsm.getReport(payload)` | `netgsm.sms.getReport(payload)` |
+| `netgsm.getStats(payload)` | `netgsm.sms.getStats(payload)` |
+| `netgsm.getHeaders(payload)` | `netgsm.sms.getHeaders(payload)` |
+| `netgsm.getInbox(payload)` | `netgsm.sms.getInbox(payload)` |
+| `netgsm.checkBalance(payload)` | `netgsm.sms.checkBalance(payload)` |
 
 ## Development
 
@@ -240,6 +291,9 @@ npm install
 
 # Run tests
 npm test
+
+# Run integration tests (requires .env)
+npm run test:integration
 
 # Build the library
 npm run build

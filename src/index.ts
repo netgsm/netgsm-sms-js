@@ -6,18 +6,28 @@
 import {
   ApiErrorCode,
   BalanceType,
+  BalanceErrorCode,
   OperatorCode,
   SmsStatus,
   SendSmsErrorCode,
   SendOtpSmsErrorCode,
+  StatsErrorCode,
   InboxErrorCode,
   ReportErrorCode,
   MsgHeaderErrorCode,
   CancelErrorCode,
+  SmsEncoding,
+  IysFilter,
+  IysRecipientType,
+  IysAddressType,
+  IysConsentStatus,
+  IysSource,
 } from "./enums";
 import Netgsm from "./netgsm";
+import { SmsModule } from "./modules/sms";
+import { IysModule } from "./modules/iys";
 
-export { Netgsm };
+export { Netgsm, SmsModule, IysModule };
 export default Netgsm;
 
 // Export all types
@@ -27,12 +37,20 @@ export * from "./types";
 export {
   ApiErrorCode,
   BalanceType,
+  BalanceErrorCode,
   OperatorCode,
   SmsStatus,
   SendSmsErrorCode,
   SendOtpSmsErrorCode,
+  StatsErrorCode,
   InboxErrorCode,
   ReportErrorCode,
   MsgHeaderErrorCode,
   CancelErrorCode,
+  SmsEncoding,
+  IysFilter,
+  IysRecipientType,
+  IysAddressType,
+  IysConsentStatus,
+  IysSource,
 };

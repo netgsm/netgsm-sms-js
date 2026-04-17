@@ -5,7 +5,7 @@
  * zamanlanmış SMS iptal etme ve rapor sorgulama işlemlerini göstermektedir.
  */
 
-const { Netgsm, Enums } = require('@netgsm/sms');
+const { Netgsm } = require('@netgsm/sms');
 
 // Netgsm istemcisini yapılandırma
 // Gerçek kullanımda kendi bilgilerinizi girin
@@ -30,9 +30,8 @@ async function sendScheduledSms(scheduledDate, message, recipients, header) {
     // Tarihi Netgsm formatına dönüştür
     const formattedDate = formatDateForNetgsm(scheduledDate);
     
-    const response = await netgsm.sendRestSms({
+    const response = await netgsm.sms.send({
       msgheader: header,
-      encoding: Enums.Encoding.TR,
       startdate: formattedDate, // Zamanlanmış gönderim için başlangıç tarihi
       messages: recipients.map(recipient => ({
         msg: message,
@@ -57,7 +56,7 @@ async function cancelScheduledSms(jobId) {
   try {
     console.log(`${jobId} numaralı zamanlanmış SMS iptal ediliyor...`);
     
-    const response = await netgsm.cancelScheduledSms({
+    const response = await netgsm.sms.cancel({
       jobid: jobId
     });
     
@@ -77,7 +76,7 @@ async function checkReport(jobId) {
   try {
     console.log(`${jobId} numaralı SMS raporu sorgulanıyor...`);
     
-    const report = await netgsm.getReport({
+    const report = await netgsm.sms.getReport({
       bulkIds: [jobId],
     });
     

@@ -5,7 +5,7 @@
  * SMS gönderme, rapor sorgulama, başlık listeleme ve bakiye sorgulama işlemlerini içerir.
  */
 
-const { Netgsm, Enums } = require('@netgsm/sms');
+const { Netgsm, BalanceType, SmsEncoding } = require('@netgsm/sms');
 
 // Netgsm istemcisini yapılandırma
 // Gerçek kullanımda kendi bilgilerinizi girin
@@ -22,9 +22,9 @@ async function sendSmsExample() {
   try {
     console.log('SMS gönderiliyor...');
     
-    const response = await netgsm.sendRestSms({
+    const response = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ', // SMS başlığınız
-      encoding: Enums.Encoding.TR, // Türkçe karakter desteği
+      encoding: SmsEncoding.TR, // Türkçe karakter desteği
       // startdate: '010620241530', // İsteğe bağlı (ddMMyyyyHHmm formatında)
       messages: [{
         msg: 'Merhaba! Bu bir test mesajıdır.',
@@ -46,14 +46,14 @@ async function sendOtpExample() {
   try {
     console.log('OTP SMS gönderiliyor...');
     
-    const response = await netgsm.sendOtpSms({
+    const response = await netgsm.sms.sendOtp({
       msgheader: 'BAŞLIĞINIZ', // SMS başlığınız
       msg: 'Merhaba! Bu bir test mesajıdır.', // max 160 karakter
       no: '5XXXXXXXXX' // Alıcı numarası (başında 0 olmadan)      
     });
     
     console.log('OTP SMS gönderildi:', response);
-    return response.jobid; // Rapor sorgulamak için jobid'yi döndürüyoruz
+    return response.jobId;
   } catch (error) {
     console.error('OTP SMS gönderme hatası:', error);
   }
@@ -67,7 +67,7 @@ async function checkReportExample(jobId) {
   try {
     console.log(`${jobId} numaralı SMS raporu sorgulanıyor...`);
     
-    const report = await netgsm.getReport({
+    const report = await netgsm.sms.getReport({
       bulkIds: [jobId]      
     });
     
@@ -84,7 +84,7 @@ async function listHeadersExample() {
   try {
     console.log('Mesaj başlıkları listeleniyor...');
     
-    const headers = await netgsm.getHeaders();
+    const headers = await netgsm.sms.getHeaders();
     
     console.log('Mesaj başlıkları:', headers);
   } catch (error) {
@@ -99,8 +99,8 @@ async function checkBalanceExample() {
   try {
     console.log('Bakiye sorgulanıyor...');
     
-    const balance = await netgsm.checkBalance({
-      type: Enums.BalanceType.SMS // SMS bakiyesi
+    const balance = await netgsm.sms.checkBalance({
+      stip: BalanceType.CREDIT // CREDIT veya PACKAGE
     });
     
     console.log('Bakiye:', balance);
