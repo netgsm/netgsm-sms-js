@@ -122,6 +122,7 @@ For more examples, check the [examples](./examples) directory:
 - [Scheduled SMS](./examples/advanced/scheduled-sms.js)
 - [Bulk SMS](./examples/advanced/bulk-sms.js)
 - [Additional Examples](./examples/advanced/additional-examples.js)
+- [IYS Consent Management](./examples/advanced/iys-consent.js)
 
 ## API Reference
 

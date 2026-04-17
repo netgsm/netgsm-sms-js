@@ -5,7 +5,7 @@
  * ve toplu SMS raporlarını sorgulama işlemlerini göstermektedir.
  */
 
-const { Netgsm, Enums } = require('@netgsm/sms');
+const { Netgsm } = require('@netgsm/sms');
 const fs = require('fs');
 const path = require('path');
 
@@ -33,10 +33,9 @@ async function sendBulkSms(messageList, header) {
       no: item.recipient
     }));
     
-    const response = await netgsm.sendBulkSms({
+    const response = await netgsm.sms.send({
       msgheader: header,
-      messages: messages,
-      encoding: Enums.Encoding.TR
+      messages: messages
     });
     
     console.log('Toplu SMS gönderildi:', response);
@@ -80,7 +79,7 @@ async function queryBulkSmsReport(jobId) {
   try {
     console.log(`${jobId} numaralı toplu SMS raporu sorgulanıyor...`);
     
-    const report = await netgsm.getReport({
+    const report = await netgsm.sms.getReport({
       bulkIds: [jobId]
     });
     

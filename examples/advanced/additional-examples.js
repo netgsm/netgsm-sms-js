@@ -35,7 +35,7 @@ async function sendFutureMessage() {
     const formattedDate = formatDate(futureDate);
     console.log(`Gönderim tarihi: ${formattedDate}`);
     
-    const response = await netgsm.sendRestSms({
+    const response = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
       startdate: formattedDate, // İleri tarihli gönderim için başlangıç tarihi
       messages: [{
@@ -58,7 +58,7 @@ async function sendToMultipleRecipients() {
   try {
     console.log('Birden fazla numaraya mesaj gönderiliyor...');
     
-    const response = await netgsm.sendRestSms({
+    const response = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
       messages: [
         {
@@ -102,7 +102,7 @@ async function sendWithExpiryDate() {
     console.log(`Başlangıç tarihi: ${formattedStartDate}`);
     console.log(`Bitiş tarihi: ${formattedStopDate}`);
     
-    const response = await netgsm.sendRestSms({
+    const response = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
       startdate: formattedStartDate, // Başlangıç tarihi
       stopdate: formattedStopDate,   // Bitiş tarihi
@@ -126,7 +126,7 @@ async function sendWithTurkishCharacters() {
   try {
     console.log('Türkçe karakterli mesaj gönderiliyor...');
     
-    const response = await netgsm.sendRestSms({
+    const response = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
       encoding: 'TR', // Türkçe karakter desteği için
       messages: [{
@@ -150,7 +150,7 @@ async function sendWithIysFilter() {
     console.log('İYS filtreli mesajlar gönderiliyor...');
     
     // Ticari içerikli bireysele gönderim (İYS kontrollü)
-    const response1 = await netgsm.sendRestSms({
+    const response1 = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
       iysfilter: '11', // Ticari içerikli bireysele gönderim (İYS kontrollü)
       messages: [{
@@ -162,7 +162,7 @@ async function sendWithIysFilter() {
     console.log('Ticari içerikli bireysel mesaj yanıtı:', response1);
     
     // Ticari içerikli tacire gönderim (İYS kontrollü)
-    const response2 = await netgsm.sendRestSms({
+    const response2 = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
       iysfilter: '12', // Ticari içerikli tacire gönderim (İYS kontrollü)
       messages: [{
@@ -174,7 +174,7 @@ async function sendWithIysFilter() {
     console.log('Ticari içerikli tacir mesaj yanıtı:', response2);
     
     // Bilgilendirme amaçlı gönderim (İYS kontrolsüz)
-    const response3 = await netgsm.sendRestSms({
+    const response3 = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
       iysfilter: '0', // Bilgilendirme amaçlı gönderim (İYS kontrolsüz)
       messages: [{
