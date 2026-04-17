@@ -69,4 +69,5 @@ if (fs.existsSync(indexMjsPath)) {
   }
 }
 
+fs.rmSync(esmDir, { recursive: true, force: true });
 console.log('ES Modules conversion completed successfully!'); 
