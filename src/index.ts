@@ -16,8 +16,10 @@ import {
   CancelErrorCode,
 } from "./enums";
 import Netgsm from "./netgsm";
+import { SmsModule } from "./modules/sms";
+import { IysModule } from "./modules/iys";
 
-export { Netgsm };
+export { Netgsm, SmsModule, IysModule };
 export default Netgsm;
 
 // Export all types
