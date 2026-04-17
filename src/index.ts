@@ -6,6 +6,7 @@
 import {
   ApiErrorCode,
   BalanceType,
+  BalanceErrorCode,
   OperatorCode,
   SmsStatus,
   SendSmsErrorCode,
@@ -36,6 +37,7 @@ export * from "./types";
 export {
   ApiErrorCode,
   BalanceType,
+  BalanceErrorCode,
   OperatorCode,
   SmsStatus,
   SendSmsErrorCode,

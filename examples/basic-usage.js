@@ -5,7 +5,7 @@
  * SMS gönderme, rapor sorgulama, başlık listeleme ve bakiye sorgulama işlemlerini içerir.
  */
 
-const { Netgsm, BalanceType } = require('@netgsm/sms');
+const { Netgsm, BalanceType, SmsEncoding } = require('@netgsm/sms');
 
 // Netgsm istemcisini yapılandırma
 // Gerçek kullanımda kendi bilgilerinizi girin
@@ -24,7 +24,7 @@ async function sendSmsExample() {
     
     const response = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ', // SMS başlığınız
-      encoding: 'TR', // Türkçe karakter desteği
+      encoding: SmsEncoding.TR, // Türkçe karakter desteği
       // startdate: '010620241530', // İsteğe bağlı (ddMMyyyyHHmm formatında)
       messages: [{
         msg: 'Merhaba! Bu bir test mesajıdır.',
