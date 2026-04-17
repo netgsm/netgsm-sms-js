@@ -10,10 +10,15 @@ import {
   SmsStatus,
   SendSmsErrorCode,
   SendOtpSmsErrorCode,
+  StatsErrorCode,
   InboxErrorCode,
   ReportErrorCode,
   MsgHeaderErrorCode,
   CancelErrorCode,
+  IysRecipientType,
+  IysAddressType,
+  IysConsentStatus,
+  IysSource,
 } from "./enums";
 import Netgsm from "./netgsm";
 import { SmsModule } from "./modules/sms";
@@ -33,8 +38,13 @@ export {
   SmsStatus,
   SendSmsErrorCode,
   SendOtpSmsErrorCode,
+  StatsErrorCode,
   InboxErrorCode,
   ReportErrorCode,
   MsgHeaderErrorCode,
   CancelErrorCode,
+  IysRecipientType,
+  IysAddressType,
+  IysConsentStatus,
+  IysSource,
 };

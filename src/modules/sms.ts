@@ -106,11 +106,15 @@ export class SmsModule extends NetgsmClient {
       "/sms/rest/v2/report",
       {
         jobids: payload.bulkIds,
-        startdate: payload.startdate,
-        stopdate: payload.stopdate,
-        appname: payload?.appname || this.sdkAppName,
-        pagenumber: payload?.pageNumber,
-        pagesize: payload?.pageSize,
+        ...(payload?.startdate && { startdate: payload.startdate }),
+        ...(payload?.stopdate && { stopdate: payload.stopdate }),
+        ...(payload?.appname
+          ? { appname: payload.appname }
+          : this.sdkAppName
+            ? { appname: this.sdkAppName }
+            : {}),
+        ...(payload?.pageNumber && { pagenumber: payload.pageNumber }),
+        ...(payload?.pageSize && { pagesize: payload.pageSize }),
       },
       ReportErrorCode
     );
@@ -170,7 +174,12 @@ export class SmsModule extends NetgsmClient {
       }),
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw { status: response.status, code: "PARSE_ERROR", description: "Failed to parse balance response" };
+    }
 
     if (response.status !== 200) {
       throw { status: response.status, ...data };

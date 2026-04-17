@@ -3,6 +3,7 @@
  * @description Base HTTP client for Netgsm API
  */
 
+import { SMS_BASE_URL } from "./constants";
 import { NetgsmConfig } from "./types";
 
 /**
@@ -23,7 +24,7 @@ function normalizeErrorCode(code: string | undefined | null, enumObj?: object): 
  * with the Netgsm API. All modules extend this class.
  */
 export abstract class NetgsmClient {
-  protected readonly baseURL = "https://api.netgsm.com.tr";
+  protected readonly baseURL = SMS_BASE_URL;
   protected readonly headers: HeadersInit;
   protected readonly sdkAppName?: string;
 

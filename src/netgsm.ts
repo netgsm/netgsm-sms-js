@@ -34,7 +34,7 @@ import {
  *
  * // New modular API:
  * await netgsm.sms.send({ ... });
- * await netgsm.iys.addRecipients({ ... });
+ * await netgsm.iys.saveConsents({ ... });
  * ```
  */
 class Netgsm {
