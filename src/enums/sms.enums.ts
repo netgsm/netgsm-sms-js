@@ -263,9 +263,22 @@ export enum OperatorCode {
 }
 
 /**
- * @deprecated Use SendSmsErrorCode, or other specific error code enums instead
- * Legacy API error codes enum — kept for backward compatibility
+ * SMS message encoding types
+ * @enum {string}
  */
+export enum SmsEncoding {
+  TR = "TR",
+}
+
+export enum IysFilter {
+  /** Bilgilendirme amaçlı, İYS kontrolü olmadan gönderim */
+  NONE = "0",
+  /** Ticari içerik, bireysele İYS kontrollü gönderim */
+  COMMERCIAL_INDIVIDUAL = "11",
+  /** Ticari içerik, tacire İYS kontrollü gönderim */
+  COMMERCIAL_MERCHANT = "12",
+}
+
 export enum ApiErrorCode {
   /** Success */
   SUCCESS = "00",

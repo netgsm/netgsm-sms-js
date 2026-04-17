@@ -13,6 +13,8 @@ import {
   BalanceType,
   BalanceErrorCode,
   StatsErrorCode,
+  SmsEncoding,
+  IysFilter,
 } from "../enums";
 
 /**
@@ -42,9 +44,9 @@ export interface BasePayload {
 export interface RestSmsPayload {
   msgheader: string; // Sender header (e.g., "MyBrand")
   appname?: string; // Optional application key
-  iysfilter?: string; // Message Management System filter
+  iysfilter?: IysFilter; // Message Management System filter
   partnercode?: string; // Partner code
-  encoding?: string; // Message encoding type (e.g., "TR")
+  encoding?: SmsEncoding; // Message encoding type
   startdate?: string; // Start date (format: ddMMyyyyHHmmss)
   stopdate?: string; // End date (format: ddMMyyyyHHmmss)
   messages: {

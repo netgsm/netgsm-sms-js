@@ -9,7 +9,7 @@
  * 5. İYS filtreli gönderim
  */
 
-const { Netgsm } = require('@netgsm/sms');
+const { Netgsm, SmsEncoding, IysFilter } = require('@netgsm/sms');
 
 // Netgsm istemcisini yapılandırma
 // Gerçek kullanımda kendi bilgilerinizi girin
@@ -128,7 +128,7 @@ async function sendWithTurkishCharacters() {
     
     const response = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
-      encoding: 'TR', // Türkçe karakter desteği için
+      encoding: SmsEncoding.TR, // Türkçe karakter desteği için
       messages: [{
         msg: 'Merhaba! Bu mesaj Türkçe karakterler içermektedir: çğıöşüÇĞİÖŞÜ',
         no: '5XXXXXXXXX' // Alıcı numarası
@@ -152,7 +152,7 @@ async function sendWithIysFilter() {
     // Ticari içerikli bireysele gönderim (İYS kontrollü)
     const response1 = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
-      iysfilter: '11', // Ticari içerikli bireysele gönderim (İYS kontrollü)
+      iysfilter: IysFilter.COMMERCIAL_INDIVIDUAL, // Ticari içerikli bireysele gönderim (İYS kontrollü)
       messages: [{
         msg: 'Bu ticari içerikli bireysel bir test mesajıdır.',
         no: '5XXXXXXXXX' // Bireysel alıcı numarası
@@ -164,7 +164,7 @@ async function sendWithIysFilter() {
     // Ticari içerikli tacire gönderim (İYS kontrollü)
     const response2 = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
-      iysfilter: '12', // Ticari içerikli tacire gönderim (İYS kontrollü)
+      iysfilter: IysFilter.COMMERCIAL_MERCHANT, // Ticari içerikli tacire gönderim (İYS kontrollü)
       messages: [{
         msg: 'Bu ticari içerikli tacir bir test mesajıdır.',
         no: '5XXXXXXXXX' // Tacir alıcı numarası
@@ -176,7 +176,7 @@ async function sendWithIysFilter() {
     // Bilgilendirme amaçlı gönderim (İYS kontrolsüz)
     const response3 = await netgsm.sms.send({
       msgheader: 'BAŞLIĞINIZ',
-      iysfilter: '0', // Bilgilendirme amaçlı gönderim (İYS kontrolsüz)
+      iysfilter: IysFilter.NONE, // Bilgilendirme amaçlı gönderim (İYS kontrolsüz)
       messages: [{
         msg: 'Bu bilgilendirme amaçlı bir test mesajıdır.',
         no: '5XXXXXXXXX' // Alıcı numarası

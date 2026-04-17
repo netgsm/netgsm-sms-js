@@ -64,7 +64,7 @@ yarn add @netgsm/sms
 ### CommonJS usage
 
 ```javascript
-const { Netgsm } = require('@netgsm/sms');
+const { Netgsm, SmsEncoding } = require('@netgsm/sms');
 
 const netgsm = new Netgsm({
   username: 'YOUR_USERNAME',
@@ -76,7 +76,7 @@ async function sendSms() {
   try {
     const response = await netgsm.sms.send({
       msgheader: 'YOUR_HEADER',
-      encoding: 'TR',
+      encoding: SmsEncoding.TR,
       messages: [
         { msg: 'Message content', no: '5XXXXXXXXX' }
       ]
@@ -143,7 +143,7 @@ const netgsm = new Netgsm({
 ```javascript
 const response = await netgsm.sms.send({
   msgheader: 'YOUR_HEADER',
-  encoding: 'TR',              // TR, ASCII
+  encoding: SmsEncoding.TR,    // Optional, for Turkish character support
   startdate: '010620241530',   // Optional (format: ddMMyyyyHHmm)
   stopdate: '010620241630',    // Optional (format: ddMMyyyyHHmm)
   messages: [
