@@ -3,17 +3,18 @@
   "version": "2.0.0",
   "description": "Netgsm API Client for SMS sending and reporting",
   "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
       "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./enums": {
+      "types": "./dist/enums.d.ts",
       "require": "./dist/enums.js",
-      "import": "./dist/enums.mjs",
-      "types": "./dist/enums.d.ts"
+      "import": "./dist/enums.mjs"
     }
   },
   "files": [

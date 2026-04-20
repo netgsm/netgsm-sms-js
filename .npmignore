@@ -3,6 +3,7 @@ node_modules/
 
 # Source files
 src/
+scripts/
 
 # Test and coverage files
 __test__/
@@ -20,13 +21,15 @@ jest.config.js
 # Git files
 .git/
 .gitignore
+.github/
 
 # Config files
-tsconfig.json
-package-lock.json
-
-# Development dependencies
-devDependencies
+tsconfig*.json
+.eslintrc.json
+.prettierrc
 package-lock.json
 yarn.lock
 .npmrc
+
+# Development tools
+.husky/

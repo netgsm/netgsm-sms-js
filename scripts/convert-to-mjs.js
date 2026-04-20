@@ -19,6 +19,15 @@ function fixImports(content) {
   return content;
 }
 
+function fixDtsImports(content) {
+  content = content.replace(/from ['"](.*)\.js['"]/g, "from '$1.mjs'");
+  content = content.replace(/from ["'](\.[^"']*?)["']/g, (match, p1) => {
+    if (p1.endsWith('.mjs') || p1.endsWith('.js') || p1.endsWith('.json') || p1.endsWith('.d.ts')) return match;
+    return `from "${p1}.mjs"`;
+  });
+  return content;
+}
+
 function processDir(srcDir, outDir) {
   fs.mkdirSync(outDir, { recursive: true });
   const entries = fs.readdirSync(srcDir, { withFileTypes: true });
@@ -31,6 +40,22 @@ function processDir(srcDir, outDir) {
       fs.writeFileSync(outFile, content);
       const rel = path.relative(distDir, outFile);
       console.log(`Converted and moved: ${entry.name} -> ${rel}`);
+    }
+  });
+}
+
+function copyDtsAsMts(srcDir) {
+  const entries = fs.readdirSync(srcDir, { withFileTypes: true });
+  entries.forEach(entry => {
+    const fullPath = path.join(srcDir, entry.name);
+    if (entry.isDirectory()) {
+      copyDtsAsMts(fullPath);
+    } else if (entry.name.endsWith('.d.ts')) {
+      const content = fixDtsImports(fs.readFileSync(fullPath, 'utf8'));
+      const mtsPath = fullPath.replace(/\.d\.ts$/, '.d.mts');
+      fs.writeFileSync(mtsPath, content);
+      const rel = path.relative(distDir, mtsPath);
+      console.log(`Created declaration: ${rel}`);
     }
   });
 }
@@ -70,4 +95,9 @@ if (fs.existsSync(indexMjsPath)) {
 }
 
 fs.rmSync(esmDir, { recursive: true, force: true });
+
+// Copy .d.ts files as .d.mts so TypeScript resolves types for .mjs imports
+console.log('Generating .d.mts declaration files...');
+copyDtsAsMts(distDir);
+
 console.log('ES Modules conversion completed successfully!'); 
