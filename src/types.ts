@@ -31,8 +31,8 @@ export interface NetgsmConfig {
  * Base payload interface for API requests
  */
 export interface BasePayload {
-  startdate?: string; // Start date (format: ddMMyyyyHHmmss)
-  stopdate?: string; // End date (format: ddMMyyyyHHmmss)
+  startdate?: string; // Start date (format: dd.MM.yyyy HH:mm:ss)
+  stopdate?: string; // End date (format: dd.MM.yyyy HH:mm:ss)
   appname?: string; // Optional application key
 }
 
@@ -45,8 +45,8 @@ export interface RestSmsPayload {
   iysfilter?: string; // Message Management System filter
   partnercode?: string; // Partner code
   encoding?: string; // Message encoding type (e.g., "TR")
-  startdate?: string; // Start date (format: ddMMyyyyHHmmss)
-  stopdate?: string; // End date (format: ddMMyyyyHHmmss)
+  startdate?: string; // Start date (format: ddMMyyyyHHmm)
+  stopdate?: string; // End date (format: ddMMyyyyHHmm)
   messages: {
     msg: string; // SMS content
     no: string; // Recipient's phone number
@@ -184,8 +184,8 @@ export interface CancelSmsResponse {
  */
 export interface SmsInboxPayload {
   appname?: string; // Optional application key
-  startdate?: string; // Start date (format: ddMMyyyyHHmmss)
-  stopdate?: string; // End date (format: ddMMyyyyHHmmss)
+  startdate?: string; // Start date (format: ddMMyyyyHHmm)
+  stopdate?: string; // End date (format: ddMMyyyyHHmm)
 }
 
 /**

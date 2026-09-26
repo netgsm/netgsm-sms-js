@@ -122,7 +122,13 @@ class Netgsm {
       }),
     });
 
-    return await this.handleResponse<RestSmsResponse>(response, SendSmsErrorCode);
+    return await this.handleResponse<RestSmsResponse>(response, SendSmsErrorCode, {
+      successCodes: [
+        SendSmsErrorCode.SUCCESS,
+        SendSmsErrorCode.START_DATE_CORRECTED,
+        SendSmsErrorCode.STOP_DATE_CORRECTED,
+      ],
+    });
   }
 
   /**
@@ -209,7 +215,9 @@ class Netgsm {
       }),
     });
 
-    return await this.handleResponse<StatsResponse>(response, StatsErrorCode);
+    return await this.handleResponse<StatsResponse>(response, StatsErrorCode, {
+      successWithoutCode: true,
+    });
   }
 
   /**
@@ -293,7 +301,25 @@ class Netgsm {
     return data;
   }
 
-  private async handleResponse<T>(response: Response, errorCodeEnum?: object): Promise<T> {
+  /**
+   * Parse a response and reject unless its code is a success code
+   * @template T
+   * @param {Response} response - The fetch response.
+   * @param {object} errorCodeEnum - The endpoint's code enum, used to normalize unknown codes.
+   * @param {object} options - How the response is read.
+   * @param {string[]} options.successCodes - Codes that mean the request was accepted, "00" when omitted.
+   * @param {boolean} options.successWithoutCode - Whether a 200 response without a code is a success,
+   * which is how /sms/rest/v2/stats answers a successful query.
+   * @returns {Promise<T>} - The parsed response.
+   */
+  private async handleResponse<T>(
+    response: Response,
+    errorCodeEnum?: object,
+    {
+      successCodes = ["00"],
+      successWithoutCode = false,
+    }: { successCodes?: string[]; successWithoutCode?: boolean } = {}
+  ): Promise<T> {
     // Try to parse JSON response
     let data;
     try {
@@ -318,11 +344,16 @@ class Netgsm {
         };
       }
 
+      // A successful stats query carries no code, so it is reported as "00"
+      if (successWithoutCode && response.status === 200 && data.code === undefined) {
+        data.code = "00";
+      }
+
       // Normalize error code - if code is missing or not in enum, set to "5000"
       data.code = normalizeErrorCode(data.code, errorCodeEnum);
 
       // Check if API returned an error code
-      if (data.code !== "00") {
+      if (!successCodes.includes(data.code)) {
         throw {
           status: response.status !== 200 ? response.status : 406,
           ...data,
