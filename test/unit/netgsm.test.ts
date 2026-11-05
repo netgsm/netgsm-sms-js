@@ -199,4 +199,16 @@ describe('Netgsm facade', () => {
       }
     }
   });
+
+  it('login_network_failure_surfaces_from_sms_send_as_identity_error', async () => {
+    const n = new Netgsm({
+      ...opts,
+      fetch: (() => Promise.reject(new TypeError('down'))) as typeof fetch,
+    });
+    const e = (await n.sms
+      .send({ sender: 'S', messages: [{ text: 't', recipient: '905321234567' }] })
+      .catch((x: unknown) => x)) as pkg.NetgsmApiError;
+    expect(e).toBeInstanceOf(pkg.NetgsmApiError);
+    expect(e).toMatchObject({ api: 'identity', code: 'NETWORK_ERROR' });
+  });
 });

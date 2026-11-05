@@ -190,4 +190,76 @@ describe('TokenManager', () => {
     expect(calls).toHaveLength(2);
     expect(calls[1]!.url).toBe(`${BASE}/auth/v3/token`);
   });
+
+  const mk = (fetchImpl: typeof fetch, now: () => number = () => 0) =>
+    new TokenManager({
+      baseUrl: BASE, username: 'user', password: 's3cret!', scope: 'sms', fetch: fetchImpl, now,
+    });
+  const jsonRes = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
+
+  it('login_network_failure_is_identity_api_error', async () => {
+    const m = mk((() => Promise.reject(new TypeError(`fetch failed ${BASE}/secret`))) as typeof fetch);
+    const e = (await m.get().catch((x: unknown) => x)) as NetgsmApiError;
+    expect(e).toBeInstanceOf(NetgsmApiError);
+    expect(e).toMatchObject({
+      api: 'identity', operation: 'POST /auth/v3/token', status: 0, code: 'NETWORK_ERROR',
+      requestId: null, retryAfterSec: null, retryable: true, mayHaveBeenProcessed: false,
+    });
+    expect(e.message).toContain('network error: TypeError');
+    expect(e.message).not.toContain('secret');
+  });
+
+  it('non_json_200_is_invalid_response', async () => {
+    const m = mk((() => Promise.resolve(new Response('<html>', { status: 200 }))) as typeof fetch);
+    const e = (await m.get().catch((x: unknown) => x)) as NetgsmApiError;
+    expect(e).toBeInstanceOf(NetgsmApiError);
+    expect(e).toMatchObject({ api: 'identity', code: 'INVALID_RESPONSE', status: 200, retryable: false });
+  });
+
+  it('missing_expires_in_is_invalid_response', async () => {
+    for (const body of [
+      { access_token: 'a', refresh_token: 'r' },
+      { access_token: 'a', refresh_token: 'r', expires_in: -1 },
+      { access_token: '', refresh_token: 'r', expires_in: 5 },
+      { access_token: 'a', refresh_token: 5, expires_in: 5 },
+    ]) {
+      const m = mk((() => Promise.resolve(jsonRes(200, body))) as typeof fetch);
+      const e = (await m.get().catch((x: unknown) => x)) as NetgsmApiError;
+      expect(e).toMatchObject({ code: 'INVALID_RESPONSE', retryable: false });
+    }
+  });
+
+  it('refresh_network_blip_keeps_valid_old_token_and_backs_off', async () => {
+    let t = 0;
+    const urls: string[] = [];
+    const impl = ((input: RequestInfo | URL) => {
+      const url = String(input);
+      urls.push(url);
+      if (urls.length === 1) return Promise.resolve(jsonRes(200, tokenBody(1)));
+      if (url.endsWith('/refresh') && urls.length === 2) return Promise.reject(new TypeError('boom'));
+      return Promise.resolve(jsonRes(200, tokenBody(2)));
+    }) as typeof fetch;
+    const m = mk(impl, () => t);
+    await m.get();
+    t = 3600_000 - 299_000;
+    expect(await m.get()).toBe('a1');
+    t += 29_999;
+    expect(await m.get()).toBe('a1');
+    expect(urls).toHaveLength(2);
+    t += 1;
+    expect(await m.get()).toBe('a2');
+  });
+
+  it('error_description_preferred_over_detail', async () => {
+    const m = mk((() =>
+      Promise.resolve(
+        jsonRes(401, { code: 'invalid_credentials', error_description: 'Bad credentials', detail: 'Hatali' }),
+      )) as typeof fetch);
+    const e = (await m.get().catch((x: unknown) => x)) as NetgsmApiError;
+    expect(e.message).toContain('Bad credentials');
+    expect(e.message).not.toContain('Hatali');
+    const m2 = mk((() => Promise.resolve(jsonRes(401, { code: 'x', detail: 'only detail' }))) as typeof fetch);
+    const e2 = (await m2.get().catch((x: unknown) => x)) as NetgsmApiError;
+    expect(e2.message).toContain('only detail');
+  });
 });
