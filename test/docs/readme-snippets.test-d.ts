@@ -16,6 +16,16 @@ import type { ReportWebhookPayload } from '../../src/index';
 
 declare const process: { env: Record<string, string | undefined> };
 
+// README: Upgrading from 1.x
+export async function legacyUpgrade(): Promise<void> {
+  const netgsm = new Netgsm({ username: '850XXXXXXX', password: 'YOUR_PASSWORD', appname: 'my-app' });
+  const res = await netgsm.sendRestSms({
+    msgheader: 'YOUR_HEADER',
+    messages: [{ msg: 'Hello', no: '5XXXXXXXXX' }],
+  });
+  console.log(res.code, res.jobid);
+}
+
 // README: Quick start
 export async function quickStart(): Promise<void> {
   const netgsm = new Netgsm({

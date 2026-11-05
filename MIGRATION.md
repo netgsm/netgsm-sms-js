@@ -1,15 +1,40 @@
-# Migrating from 1.x to 2.0
+# Upgrading from 1.x to 2.0
 
-Version 2.0 is a rewrite, not an upgrade. The 1.x line talks to the legacy REST API
-(`api.netgsm.com.tr`, `/sms/rest/v2/*`). Version 2.0 talks to the new APIs: Identity (`/auth/v3`), SMS
-(`/sms/v3`) and İYS (`/iys/v1`) on `ext-api.netgsm.com.tr`. Method names, request fields, response
-shapes and error handling all change, so plan to touch every call site.
+Upgrading is non-breaking for 1.x JavaScript code. `npm install @netgsm/sms@2` and your existing
+calls (`sendRestSms`, `sendOtpSms`, `cancelSms`, `getReport`, `getStats`, `getHeaders`, `getInbox`,
+`checkBalance`) keep working: same arguments, same requests to the legacy API (`api.netgsm.com.tr`),
+same response and error shapes. They are deprecated, print a one-time `DeprecationWarning` naming
+the replacement, and are removed in 3.0.0. The legacy API path is supported until 3.0.0; no date is
+announced.
 
-**Status of 1.x.** 1.x targets the legacy API and receives no new features. Move to 2.x to use the
-new APIs.
+## What can break
 
-Also new in 2.0: Node.js 20 or later is required (1.x supported Node 14), the package ships ESM and
-CommonJS builds, and it has zero runtime dependencies.
+1. Node.js 20 or later is required (`engines`; npm warns on older Node). 1.x supported Node 14.
+2. TypeScript only: `ReportResponse` and `StatsResponse` now mean the v3 types. Use
+   `LegacyReportResponse` / `LegacyStatsResponse` for the 1.x shapes.
+3. A missing or invalid `username` or `password` now throws a `TypeError` with a different message
+   (it is still an `Error`). Numeric credentials are still accepted.
+4. With `node --throw-deprecation`, the legacy methods throw synchronously on first use.
+
+Nothing else changes for 1.x code. The 1.x enums are still exported (also from
+`@netgsm/sms/enums`), and the `appname` option still works for the legacy methods.
+
+## Silencing the warnings
+
+```bash
+node --no-deprecation app.js
+```
+
+or `process.noDeprecation = true` before the first call. In a browser the legacy methods still run
+(as in 1.x) but warn that your credentials are exposed client-side; `netgsm.sms` and `netgsm.iys`
+throw there unless `dangerouslyAllowBrowser: true`.
+
+# Moving off the deprecated methods
+
+The new APIs are Identity (`/auth/v3`), SMS (`/sms/v3`) and İYS (`/iys/v1`) on
+`ext-api.netgsm.com.tr`. Method names, request fields, response shapes and error handling change,
+so plan to touch every call site. You can migrate one call at a time: both styles work on the same
+client.
 
 ## The client
 
@@ -24,14 +49,14 @@ await netgsm.sms.send({ /* ... */ });
 ```
 
 - API methods live under `netgsm.sms` (SMS API v3) and `netgsm.iys` (İYS API v1).
-- The 1.x client-level `appname` option is gone. Pass `appName` per call where the API accepts it
+- The client-level `appname` option is deprecated (it only affects the legacy methods). Pass `appName` per call where the API accepts it
   (`sms.send`, `sms.sendTemplate`, `sms.sendOtp`).
 - New options: `baseUrl`, `scope`, `enterpriseOtp`, `iysBrandCode`, `maxRetryAfterSec`, `fetch`,
   `now`, `dangerouslyAllowBrowser`. See the README.
 - The default base URL is the live `https://ext-api.netgsm.com.tr`. Use `NetgsmEnvironment.SANDBOX`
   or the local mock while you migrate; see the README's Environments table.
-- The 1.x enums (`SendSmsErrorCode`, `BalanceType`, report status enums and so on) are not exported
-  any more. Statuses and reasons are string unions (`'DELIVERED'`, `'INSUFFICIENT_CREDIT'`, ...).
+- The 1.x enums (`SendSmsErrorCode`, `BalanceType`, report status enums and so on) stay exported for
+  the legacy methods only. The new API uses string unions (`'DELIVERED'`, `'INSUFFICIENT_CREDIT'`, ...).
 
 ## Authentication
 
@@ -140,7 +165,7 @@ try {
 ## Checklist
 
 1. Upgrade to Node.js 20 or later.
-2. `npm install @netgsm/sms@2`.
+2. `npm install @netgsm/sms@2`. TypeScript: use `LegacyReportResponse` / `LegacyStatsResponse` where you still need the 1.x shapes.
 3. Replace `sendRestSms` and the other methods using the table above; convert dates to ISO-8601 with
    offset and numbers to `90XXXXXXXXXX`.
 4. Replace `code === '00'` checks with `try` / `catch` on `NetgsmApiError`.

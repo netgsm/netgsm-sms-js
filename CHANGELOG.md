@@ -4,23 +4,31 @@ All notable changes to this project will be documented in this file.
 
 ## [2.0.0] - 2026-11-05
 
-Complete rewrite for the new Netgsm APIs. See [MIGRATION.md](./MIGRATION.md) for the 1.x to 2.x
-mapping.
+Rewrite for the new Netgsm APIs. Upgrading is non-breaking for 1.x JavaScript code: the 1.x methods
+keep working as a deprecated layer against the legacy API. See [MIGRATION.md](./MIGRATION.md).
 
 ### Breaking
-- Targets the new Identity (`/auth/v3`), SMS (`/sms/v3`) and İYS (`/iys/v1`) APIs on
-  `ext-api.netgsm.com.tr` instead of the legacy REST v2 API. The 1.x line targets the legacy API
-  and receives no new features.
-- New client shape: methods live under `netgsm.sms` and `netgsm.iys` (for example
-  `sendRestSms` is now `sms.send`), with the v3 field names (`sender`, `text`, `recipient`,
-  `startAt`, ...).
-- New error model: HTTP status based `NetgsmApiError` with `code`, `requestId`, `retryable` and
-  `mayHaveBeenProcessed`; there is no `code: "00"` success check.
-- Authentication is automatic: the client fetches, caches and refreshes access tokens.
-- Requires Node.js 20 or later (1.x supported Node 14). The 1.x enums are no longer exported.
-- The client throws in a browser unless `dangerouslyAllowBrowser: true` is set.
+- Requires Node.js 20 or later (1.x supported Node 14); npm warns on older Node.
+- TypeScript only: `ReportResponse` and `StatsResponse` now name the v3 types. The 1.x shapes are
+  `LegacyReportResponse` and `LegacyStatsResponse`.
+- A missing or invalid `username` or `password` now throws a `TypeError` with a different message
+  (it is still an `Error`).
+- With `node --throw-deprecation`, the deprecated 1.x methods throw synchronously on first use.
+
+### Deprecated
+- The eight 1.x methods `sendRestSms`, `sendOtpSms`, `cancelSms`, `getReport`, `getStats`,
+  `getHeaders`, `getInbox` and `checkBalance`. They behave as in 1.x (legacy API, same response and
+  error shapes), print a one-time `DeprecationWarning` and are removed in 3.0.0. Replacements are
+  in MIGRATION.md.
+- The `appname` client option, which only the deprecated methods use.
 
 ### Added
+- New client for the Identity (`/auth/v3`), SMS (`/sms/v3`) and İYS (`/iys/v1`) APIs on
+  `ext-api.netgsm.com.tr`, under `netgsm.sms` and `netgsm.iys`, with v3 field names, automatic token
+  handling and a `NetgsmApiError` error model (`code`, `requestId`, `retryable`,
+  `mayHaveBeenProcessed`). Accessing `netgsm.sms` / `netgsm.iys` in a browser throws unless
+  `dangerouslyAllowBrowser: true`.
+- `@netgsm/sms/enums` subpath; the 1.x enums stay exported.
 - ESM and CommonJS builds with bundled type definitions; zero runtime dependencies.
 - Every SMS API v3 operation: send, template send, OTP, directory send, cancel, report, stats,
   inbox, senders, default sender, report and inbox webhooks, blacklist, length, templates, balance.

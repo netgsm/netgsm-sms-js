@@ -11,15 +11,41 @@ Official JavaScript / TypeScript client for the Netgsm SMS API v3 (`/sms/v3`) an
 - Designed for Node.js 20+, Bun, Deno and Cloudflare Workers (only web-standard APIs, no Node-only
   modules); CI-tested on Node 20/22/24 and Bun.
 - One method per API operation, typed after the API specification (field names are the API's own).
-- Coming from 1.x? Read [MIGRATION.md](./MIGRATION.md). Version 2 targets a different API and is a
-  breaking change.
+- Coming from 1.x? Your code keeps working; see [Upgrading from 1.x](#upgrading-from-1x).
+
+## Upgrading from 1.x
+
+Upgrading to 2.x is non-breaking for 1.x JavaScript code. The eight 1.x methods (`sendRestSms`,
+`sendOtpSms`, `cancelSms`, `getReport`, `getStats`, `getHeaders`, `getInbox`, `checkBalance`) still
+exist with the same arguments, the same requests to the legacy API (`api.netgsm.com.tr`) and the
+same response and error shapes:
+
+```ts
+import { Netgsm } from '@netgsm/sms';
+
+const netgsm = new Netgsm({ username: '850XXXXXXX', password: 'YOUR_PASSWORD', appname: 'my-app' });
+const res = await netgsm.sendRestSms({
+  msgheader: 'YOUR_HEADER',
+  messages: [{ msg: 'Hello', no: '5XXXXXXXXX' }],
+});
+console.log(res.code, res.jobid);
+```
+
+- Each 1.x method prints a one-time `DeprecationWarning` that names its replacement.
+- Silence the warnings with `node --no-deprecation app.js` or `process.noDeprecation = true`.
+- The deprecated methods and the `appname` option are removed in 3.0.0.
+- To move to the new API, use `netgsm.sms` and `netgsm.iys`; [MIGRATION.md](./MIGRATION.md) maps
+  every 1.x method and field.
+
+The few things that can break are listed at the top of [MIGRATION.md](./MIGRATION.md).
 
 ## Server-side only
 
-Your Netgsm username and password must never reach a browser or mobile app. The client throws when
-it detects a browser (`window` or `document` present, except Deno). If you accept that risk, for
-example in a controlled Electron app, pass `dangerouslyAllowBrowser: true`. Otherwise call Netgsm from
-your backend only.
+Your Netgsm username and password must never reach a browser or mobile app. In a browser
+(`window` or `document` present, except Deno), reading `netgsm.sms` or `netgsm.iys` throws unless you
+pass `dangerouslyAllowBrowser: true`, for example in a controlled Electron app. The deprecated 1.x
+methods still run in a browser, as they did in 1.x, but they warn that your credentials are exposed
+to every user of the page. This is strongly discouraged: call Netgsm from your backend only.
 
 ## Installation
 
@@ -60,6 +86,7 @@ request, cached, refreshed before it expires and renewed once on a `401`; you ne
 | `enterpriseOtp` | `false` | Sends `x-client: enterprise` on `sms.sendOtp` (enterprise OTP accounts only). |
 | `iysBrandCode` | none | Default İYS brand code for `iys.*` calls. |
 | `maxRetryAfterSec` | `60` | Longest `Retry-After` the client will wait for. |
+| `appname` | none | Deprecated. Only the 1.x methods use it (sent as `<appname>-sdk-js`). |
 | `fetch`, `now` | global `fetch`, `Date.now` | Injectable for tests and custom transports. |
 | `dangerouslyAllowBrowser` | `false` | See [Server-side only](#server-side-only). |
 
