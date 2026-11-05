@@ -26,6 +26,43 @@ describe("Netgsm Unit Tests", () => {
     });
   });
 
+  describe("authorization", () => {
+    const sendAndReadAuthorization = async (client: Netgsm): Promise<string | null> => {
+      fetchMock.mockResponseOnce(
+        JSON.stringify({ code: SendSmsErrorCode.SUCCESS, jobid: "12345", description: "queued" })
+      );
+      await client.sendRestSms({
+        msgheader: "TEST",
+        messages: [{ msg: "Test", no: "5551234567" }],
+      });
+      return new Headers(fetchMock.mock.calls[0][1]?.headers).get("Authorization");
+    };
+
+    it("should send the credentials as a Basic token", async () => {
+      expect(await sendAndReadAuthorization(netgsm)).toBe("Basic dGVzdC11c2VyOnRlc3QtcGFzcw==");
+    });
+
+    it("should encode non-ASCII credentials as UTF-8", async () => {
+      const client = new Netgsm({ username: "test-user", password: "şifre-ü" });
+
+      expect(await sendAndReadAuthorization(client)).toBe("Basic dGVzdC11c2VyOsWfaWZyZS3DvA==");
+    });
+
+    it("should not need Buffer, as on Cloudflare Workers", async () => {
+      const buffer = Object.getOwnPropertyDescriptor(globalThis, "Buffer");
+      let client: Netgsm;
+      try {
+        delete (globalThis as { Buffer?: unknown }).Buffer;
+        expect(typeof Buffer).toBe("undefined");
+        client = new Netgsm({ username: "test-user", password: "test-pass" });
+      } finally {
+        if (buffer) Object.defineProperty(globalThis, "Buffer", buffer);
+      }
+
+      expect(await sendAndReadAuthorization(client)).toBe("Basic dGVzdC11c2VyOnRlc3QtcGFzcw==");
+    });
+  });
+
   describe("sendRestSms", () => {
     const validPayload = {
       msgheader: "TEST",
