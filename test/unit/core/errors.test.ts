@@ -42,11 +42,12 @@ describe('NetgsmApiError', () => {
       ...base,
       rejectedItems: [{ index: 0, recipient: 'x', reason: 'bad' }],
       data: { erroritem: [] },
+      violations: [{ field: 'f', message: 'm' }],
     });
     expect(Object.keys(err.toJSON())).toEqual([
       'name', 'api', 'operation', 'status', 'code', 'requestId',
       'retryAfterSec', 'retryable', 'mayHaveBeenProcessed', 'message',
-      'rejectedItems', 'data',
+      'rejectedItems', 'data', 'violations',
     ]);
   });
 });

@@ -1,4 +1,4 @@
-import { NetgsmApiError, type RejectedItem } from '../core/errors.js';
+import { NetgsmApiError, type RejectedItem, type Violation } from '../core/errors.js';
 import { maskRecipient } from '../core/mask.js';
 import { readJson } from '../core/read-json.js';
 import { jitterMs, parseRetryAfter } from '../core/retry-after.js';
@@ -53,6 +53,18 @@ function maskRejected(items: any[]): RejectedItem[] {
     ...i,
     recipient: typeof i?.recipient === 'string' ? maskRecipient(i.recipient) : null,
   }));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function readViolations(v: any): Violation[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out: Violation[] = [];
+  for (const i of v) {
+    if (typeof i?.field === 'string' && typeof i?.message === 'string') {
+      out.push({ field: i.field, message: i.message });
+    }
+  }
+  return out.length > 0 ? out : undefined;
 }
 
 function serializeQuery(query: Record<string, QueryValue>): string {
@@ -167,6 +179,7 @@ export class SmsTransport {
           retryable,
           mayHaveBeenProcessed,
           rejectedItems: Array.isArray(p.rejectedItems) ? maskRejected(p.rejectedItems) : undefined,
+          violations: readViolations(p.violations),
         });
 
       // 401: token invalid. Re-login once and repeat once.

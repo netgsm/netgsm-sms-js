@@ -5,6 +5,12 @@ export interface RejectedItem {
   reason: string;
 }
 
+/** A request-validation problem (400 INVALID_REQUEST): the field and why it was refused. */
+export interface Violation {
+  field: string;
+  message: string;
+}
+
 export interface NetgsmApiErrorInit {
   api: 'identity' | 'sms' | 'iys';
   /** e.g. `POST /sms/v3/send` */
@@ -18,6 +24,7 @@ export interface NetgsmApiErrorInit {
   mayHaveBeenProcessed?: boolean;
   rejectedItems?: RejectedItem[];
   data?: unknown;
+  violations?: Violation[];
 }
 
 /**
@@ -37,6 +44,8 @@ export class NetgsmApiError extends Error {
   readonly rejectedItems?: RejectedItem[];
   /** İYS `data` payload (e.g. `erroritem`). */
   readonly data?: unknown;
+  /** SMS 400 INVALID_REQUEST: which fields were refused and why. */
+  readonly violations?: Violation[];
 
   constructor(init: NetgsmApiErrorInit) {
     super(
@@ -53,6 +62,7 @@ export class NetgsmApiError extends Error {
     this.mayHaveBeenProcessed = init.mayHaveBeenProcessed ?? false;
     if (init.rejectedItems !== undefined) this.rejectedItems = init.rejectedItems;
     if (init.data !== undefined) this.data = init.data;
+    if (init.violations !== undefined) this.violations = init.violations;
   }
 
   toJSON(): Record<string, unknown> {
@@ -70,6 +80,7 @@ export class NetgsmApiError extends Error {
     };
     if (this.rejectedItems !== undefined) json.rejectedItems = this.rejectedItems;
     if (this.data !== undefined) json.data = this.data;
+    if (this.violations !== undefined) json.violations = this.violations;
     return json;
   }
 }

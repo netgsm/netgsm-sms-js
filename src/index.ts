@@ -4,7 +4,7 @@ export { Netgsm };
 export type { NetgsmOptions, SmsApi, IysApi } from './netgsm.js';
 export { NetgsmEnvironment } from './environment.js';
 export { NetgsmApiError } from './core/errors.js';
-export type { NetgsmApiErrorInit, RejectedItem } from './core/errors.js';
+export type { NetgsmApiErrorInit, RejectedItem, Violation } from './core/errors.js';
 export { VERSION } from './version.js';
 export { parseCredit, findBalance } from './sms/balance.js';
 export {

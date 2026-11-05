@@ -346,4 +346,21 @@ describe('SmsTransport', () => {
     expect(e.rejectedItems![0]).toEqual({ index: 0, recipient: '905321****67', reason: 'INVALID_RECIPIENT' });
     expect(e.rejectedItems![1]!.recipient).toBeNull();
   });
+
+  it('400_exposes_violations', async () => {
+    const { transport } = setup([
+      {
+        status: 400,
+        body: {
+          code: 'INVALID_REQUEST',
+          message: 'invalid',
+          requestId: 'r1',
+          violations: [{ field: 'messages[0].text', message: 'must not be blank' }, { bogus: 1 }],
+        },
+      },
+    ]);
+    const e = await fails(transport.request('POST', '/send', { body: {} }));
+    expect(e.violations).toEqual([{ field: 'messages[0].text', message: 'must not be blank' }]);
+    expect(e.toJSON().violations).toEqual(e.violations);
+  });
 });
