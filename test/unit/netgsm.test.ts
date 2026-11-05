@@ -20,7 +20,7 @@ describe('Netgsm facade', () => {
     for (const bad of [
       { username: '', password: SECRET },
       { username: 'user1', password: '' },
-      { username: 'user1', password: 5 as unknown as string },
+      { username: 'user1', password: {} as unknown as string },
       { username: undefined as unknown as string, password: SECRET },
     ]) {
       let err: unknown;
@@ -169,7 +169,8 @@ describe('Netgsm facade', () => {
   });
 
   it('never exposes tokens or password after a login', async () => {
-    const { fetch } = fakeFetch([
+    const queue: Response[] = [];
+    const { fetch: v3Fetch } = fakeFetch([
       { status: 200, body: { access_token: 'ACCESS_TOKEN_XYZ', refresh_token: 'REFRESH_TOKEN_XYZ', expires_in: 3600 } },
       { status: 200, body: { success: true, errorCode: 0, data: [] } },
       {
@@ -186,19 +187,26 @@ describe('Netgsm facade', () => {
         },
       },
     ]);
+    const fetch = ((...a: Parameters<typeof globalThis.fetch>) =>
+      queue.length ? Promise.resolve(queue.shift()!) : v3Fetch(...a)) as typeof globalThis.fetch;
     const n = new Netgsm({ ...opts, fetch, iysBrandCode: 1 });
     await n.sms.getBalance();
     await n.iys.searchConsents([
       { recipient: '+905551234567', recipientType: 'BIREYSEL', type: 'MESAJ' },
     ]);
+    // Same session: one legacy call over its own (Basic) credentials.
+    queue.push(new Response(JSON.stringify({ code: '00', jobid: '1', description: 'ok' })));
+    await n.sendRestSms({ msgheader: 'T', messages: [{ msg: 'm', no: '5551234567' }] });
+    const basic = btoa('user1:' + SECRET);
     for (const x of [n, n.sms, n.iys]) {
       for (const out of [
         String(x),
         JSON.stringify(x),
-        inspect(x, { depth: Infinity, showHidden: true }),
+        inspect(x, { depth: Infinity, showHidden: true, getters: true }),
       ]) {
         expect(out).not.toContain('ACCESS_TOKEN_XYZ');
         expect(out).not.toContain('REFRESH_TOKEN_XYZ');
+        expect(out).not.toContain(basic);
         expect(out).not.toContain(SECRET);
       }
     }
@@ -214,6 +222,39 @@ describe('Netgsm facade', () => {
       .catch((x: unknown) => x)) as pkg.NetgsmApiError;
     expect(e).toBeInstanceOf(pkg.NetgsmApiError);
     expect(e).toMatchObject({ api: 'identity', code: 'NETWORK_ERROR' });
+  });
+
+  it('accepts numeric credentials and appname: null like 1.x', async () => {
+    const { fetch, calls } = fakeFetch([tok, { status: 200, body: {} }]);
+    const n = new Netgsm({
+      username: 8501234567 as unknown as string,
+      password: 123456 as unknown as string,
+      appname: null as unknown as string,
+      fetch,
+    });
+    await n.sms.getBalance();
+    expect(calls[0]!.body).toMatchObject({ username: '8501234567', password: '123456' });
+    const legacy = fakeFetch([{ status: 200, body: { code: '00', jobid: '1', description: 'ok' } }]);
+    const l = new Netgsm({
+      username: 8501234567 as unknown as string,
+      password: 123456 as unknown as string,
+      appname: null as unknown as string,
+      fetch: legacy.fetch,
+    });
+    await l.sendRestSms({ msgheader: 'T', messages: [] });
+    expect(legacy.calls[0]!.headers['authorization']).toBe('Basic ' + btoa('8501234567:123456'));
+    expect(legacy.calls[0]!.body).not.toHaveProperty('appname');
+  });
+
+  it('still rejects NaN, objects, booleans and empty strings as credentials', () => {
+    for (const bad of [NaN, Infinity, {}, true, '']) {
+      for (const key of ['username', 'password']) {
+        expect(
+          () => new Netgsm({ ...opts, [key]: bad } as never),
+          `${key}=${String(bad)}`,
+        ).toThrow(TypeError);
+      }
+    }
   });
 
   it('validates option types with generic messages', () => {

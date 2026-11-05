@@ -23,16 +23,21 @@ let warnings: Array<{ message: string; code?: string; name: string }>;
 const onWarning = (w: Error & { code?: string }) =>
   warnings.push({ message: w.message, code: w.code, name: w.name });
 
+// Node's default 'warning' printer is detached while a test runs so stderr stays clean.
+let savedListeners: Array<(...a: never[]) => void> = [];
 beforeEach(() => {
   resetDeprecationWarnings();
   warnings = [];
   process.noDeprecation = false;
+  savedListeners = process.listeners('warning') as typeof savedListeners;
+  process.removeAllListeners('warning');
   process.on('warning', onWarning);
 });
 afterEach(async () => {
   await tick(); // let pending process warnings flush before detaching
   process.off('warning', onWarning);
-  process.noDeprecation = false;
+  for (const l of savedListeners) process.on("warning", l as (w: Error) => void);
+  process.noDeprecation = true;
   delete (globalThis as { window?: unknown }).window;
   delete (globalThis as { document?: unknown }).document;
   vi.restoreAllMocks();

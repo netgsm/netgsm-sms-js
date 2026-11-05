@@ -106,6 +106,10 @@ function assertOptions(o: NetgsmOptions): void {
   }
 }
 
+function coerceCredential(v: unknown): string {
+  return typeof v === 'number' && Number.isFinite(v) ? String(v) : (v as string);
+}
+
 function isBrowserLike(): boolean {
   return (
     typeof document !== 'undefined' ||
@@ -124,7 +128,16 @@ export class Netgsm {
   readonly #legacy: LegacyClient;
   readonly #allowBrowser: boolean;
 
-  constructor(o: NetgsmOptions) {
+  constructor(options: NetgsmOptions) {
+    // 1.x accepted numeric credentials (e.g. read from JSON) and appname: null; keep that.
+    const o: NetgsmOptions = options
+      ? {
+          ...options,
+          username: coerceCredential(options.username),
+          password: coerceCredential(options.password),
+          ...((options.appname as unknown) === null ? { appname: undefined } : {}),
+        }
+      : options;
     if (!o || typeof o.username !== 'string' || o.username === '') {
       throw new TypeError('username must be a non-empty string');
     }
