@@ -230,4 +230,78 @@ describe('SmsTransport', () => {
     });
     expect(api()[0]!.url).toBe(`${BASE}/sms/v3/report?jobIds=1%2C2&page=2`);
   });
+
+  it('invalid_2xx_body_throws', async () => {
+    const post = setup([{ status: 200, body: '<html>proxy</html>' }]);
+    const e1 = await fails(post.transport.request('POST', '/send', { body: {} }));
+    expect(e1.code).toBe('INVALID_RESPONSE');
+    expect(e1.mayHaveBeenProcessed).toBe(true);
+    expect(e1.retryable).toBe(false);
+    expect(e1.message).not.toContain('proxy');
+    expect(post.api()).toHaveLength(1);
+
+    const get = setup([{ status: 200 }]);
+    const e2 = await fails(get.transport.request('GET', '/senders'));
+    expect(e2.code).toBe('INVALID_RESPONSE');
+    expect(e2.mayHaveBeenProcessed).toBe(false);
+  });
+
+  it('non_canonical_path_throws_before_fetch', async () => {
+    const { transport, api } = setup([{ status: 202 }]);
+    await expect(transport.request('POST', '/send?x=1', { body: {} })).rejects.toBeInstanceOf(
+      TypeError,
+    );
+    await expect(transport.request('POST', '/send/', { body: {} })).rejects.toBeInstanceOf(
+      TypeError,
+    );
+    expect(api()).toHaveLength(0);
+  });
+
+  it('empty_array_query_is_skipped', async () => {
+    const { transport, api } = setup([{ status: 200, body: {} }]);
+    await transport.request('GET', '/report', { query: { jobIds: [], page: 1 } });
+    expect(api()[0]!.url).toBe(`${BASE}/sms/v3/report?page=1`);
+  });
+
+  it('network_error_wrapped_never_retried', async () => {
+    const make = () => {
+      let n = 0;
+      const tokens = new TokenManager({
+        baseUrl: BASE,
+        username: 'u',
+        password: 'p',
+        scope: 'sms',
+        fetch: fakeFetch([tok(1)]).fetch,
+        now: () => 0,
+      });
+      const f = (() => {
+        n++;
+        return Promise.reject(new TypeError(`fetch failed ${BASE}/secret`));
+      }) as typeof fetch;
+      const transport = new SmsTransport({
+        baseUrl: BASE,
+        tokens,
+        fetch: f,
+        now: () => 0,
+        sleep: () => Promise.resolve(),
+        maxRetryAfterSec: 60,
+        userAgent: 'ua',
+      });
+      return { transport, count: () => n };
+    };
+    const a = make();
+    const e1 = await fails(a.transport.request('POST', '/send', { body: {} }));
+    expect(e1.code).toBe('NETWORK_ERROR');
+    expect(e1.status).toBe(0);
+    expect(e1.mayHaveBeenProcessed).toBe(true);
+    expect(e1.retryable).toBe(false);
+    expect(e1.message).not.toContain('secret');
+    expect(a.count()).toBe(1);
+
+    const b = make();
+    const e2 = await fails(b.transport.request('GET', '/balance'));
+    expect(e2.mayHaveBeenProcessed).toBe(false);
+    expect(e2.retryable).toBe(true);
+    expect(b.count()).toBe(1);
+  });
 });

@@ -48,7 +48,7 @@ function hasPerJobLimit(path: string, query: Record<string, QueryValue>): boolea
 function serializeQuery(query: Record<string, QueryValue>): string {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(query)) {
-    if (v === undefined) continue;
+    if (v === undefined || (Array.isArray(v) && v.length === 0)) continue;
     q.set(k, Array.isArray(v) ? v.join(',') : String(v));
   }
   return q.toString();
@@ -68,6 +68,9 @@ export class SmsTransport {
     path: string,
     opts: RequestOptions = {},
   ): Promise<T> {
+    if (path.includes('?') || (path.length > 1 && path.endsWith('/'))) {
+      throw new TypeError("request path must be canonical: no query string, no trailing '/'");
+    }
     const { tokens, now, sleep, maxRetryAfterSec } = this.o;
     const query = opts.query ?? {};
     const qs = serializeQuery(query);
@@ -87,21 +90,48 @@ export class SmsTransport {
       };
       if (typeof window === 'undefined') headers['User-Agent'] = this.o.userAgent;
       if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
-      const res = await this.o.fetch(url, {
-        method,
-        headers,
-        body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
-      });
+      let res: Response;
+      try {
+        res = await this.o.fetch(url, {
+          method,
+          headers,
+          body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+        });
+      } catch (e) {
+        // Never retried; only the error name is reported (the message may contain the URL).
+        const name = e instanceof Error ? e.name : 'unknown';
+        throw new NetgsmApiError({
+          api: 'sms',
+          operation,
+          status: 0,
+          code: 'NETWORK_ERROR',
+          detail: `network error: ${name}`,
+          requestId: null,
+          retryAfterSec: null,
+          retryable: !isBatchSend(method, path),
+          mayHaveBeenProcessed: method !== 'GET',
+        });
+      }
 
       if (res.ok) {
         if (res.status === 204) return undefined as T;
-        const text = await res.text();
-        if (!text) return undefined as T;
+        const text = await res.text().catch(() => '');
         try {
-          return JSON.parse(text) as T;
+          if (text) return JSON.parse(text) as T;
         } catch {
-          return undefined as T;
+          // fall through to INVALID_RESPONSE
         }
+        throw new NetgsmApiError({
+          api: 'sms',
+          operation,
+          status: res.status,
+          code: 'INVALID_RESPONSE',
+          detail: 'response body is not JSON',
+          requestId: res.headers.get('X-Request-Id') ?? res.headers.get('X-Thread-Id'),
+          retryAfterSec: null,
+          retryable: false,
+          mayHaveBeenProcessed: method !== 'GET',
+        });
       }
 
       const p = await readJson(res);
