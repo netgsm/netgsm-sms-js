@@ -96,15 +96,15 @@ describe('IysApi', () => {
     const { api, calls } = setup([
       ok({ uid: 'u1', erroritem: [{ index: 0, field: 'consentDate', message: 'bad' }] }),
     ]);
-    const r = await api.saveConsents([rec()], { refId: 'ref', path: 'SMSAPI', requestId: 'rid-1' });
+    const r = await api.saveConsents([rec()], { refId: 'ref', path: 'SMSAPI', requestId: 'rid-00001' });
     expect(r).toEqual({
       uid: 'u1',
       rejected: [{ index: 0, field: 'consentDate', message: 'bad' }],
-      requestId: 'rid-1',
+      requestId: 'rid-00001',
     });
     const c = calls()[0]!;
     expect(c.url).toBe(`${BASE}/iys/v1/consents`);
-    expect(c.headers['x-request-id']).toBe('rid-1');
+    expect(c.headers['x-request-id']).toBe('rid-00001');
     expect(c.body).toMatchObject({ brandCode: 123, path: 'SMSAPI', refId: 'ref' });
   });
 
@@ -165,8 +165,8 @@ describe('IysApi', () => {
 
   it('saveWebhook_posts', async () => {
     const { api, calls } = setup([ok({ uid: 'w1' })]);
-    const r = await api.saveWebhook('https://hook.example/x', { path: 'SMSAPI', requestId: 'r2' });
-    expect(r).toEqual({ uid: 'w1', requestId: 'r2' });
+    const r = await api.saveWebhook('https://hook.example/x', { path: 'SMSAPI', requestId: 'rid-00002' });
+    expect(r).toEqual({ uid: 'w1', requestId: 'rid-00002' });
     expect(calls()[0]!.body).toEqual({
       brandCode: 123,
       path: 'SMSAPI',
@@ -241,9 +241,19 @@ describe('IysTransport', () => {
   it('get_500_is_retried', async () => {
     const { api, calls } = setup([
       { status: 500, body: { success: false, errorCode: 110, message: 'err' } },
-      ok([]),
+      ok([
+        {
+          type: 'MESAJ',
+          source: 'HS_WEB',
+          recipient: q1.recipient,
+          status: 'ONAY',
+          consentDate: '2026-11-05 10:00:00',
+          recipientType: 'BIREYSEL',
+        },
+      ]),
     ]);
-    await api.searchConsents([q1]);
+    const out = await api.searchConsents([q1]);
+    expect(out[0]).toMatchObject({ errorCode: 0, message: null });
     expect(calls()).toHaveLength(2);
   });
 
@@ -299,6 +309,63 @@ describe('IysTransport', () => {
     const { transport, calls } = setup([]);
     await expect(transport.request('GET', '/consents?x=1')).rejects.toBeInstanceOf(TypeError);
     await expect(transport.request('GET', '/consents/')).rejects.toBeInstanceOf(TypeError);
+    expect(calls()).toHaveLength(0);
+  });
+});
+
+
+describe('malformed success and request ids', () => {
+  it.each([
+    ['empty object', {}],
+    ['array', []],
+    ['no success flag', { errorCode: 0, data: { uid: 'x' } }],
+  ])('2xx_%s_is_invalid_response', async (_n, body) => {
+    const { api } = setup([{ status: 200, body }]);
+    const e = await fails(api.saveConsents([rec()]));
+    expect(e).toMatchObject({ code: 'INVALID_RESPONSE', mayHaveBeenProcessed: true });
+  });
+
+  it('saveConsents_without_uid_is_invalid_response', async () => {
+    const { api } = setup([ok({ erroritem: [] })]);
+    const e = await fails(api.saveConsents([rec()]));
+    expect(e).toMatchObject({ code: 'INVALID_RESPONSE', mayHaveBeenProcessed: true });
+  });
+
+  it('saveWebhook_without_uid_is_invalid_response', async () => {
+    const { api } = setup([{ status: 200, body: { success: true } }]);
+    const e = await fails(api.saveWebhook('https://h.example'));
+    expect(e).toMatchObject({ code: 'INVALID_RESPONSE', mayHaveBeenProcessed: true });
+  });
+
+  it('searchConsents_non_array_data_is_invalid_response', async () => {
+    const { api } = setup([ok({ foo: 1 })]);
+    const e = await fails(api.searchConsents([q1]));
+    expect(e).toMatchObject({ code: 'INVALID_RESPONSE', mayHaveBeenProcessed: false });
+  });
+
+  it('searchConsents_row_count_mismatch_is_invalid_response', async () => {
+    const { api } = setup([ok([])]);
+    const e = await fails(api.searchConsents([q1]));
+    expect(e).toMatchObject({ code: 'INVALID_RESPONSE', mayHaveBeenProcessed: false });
+  });
+
+  it.each([110, 112])('post_consents_errorCode_%i_is_uncertain_whatever_status', async (code) => {
+    const { api, calls } = setup([
+      { status: 400, body: { success: false, errorCode: code, message: 'x' } },
+    ]);
+    const e = await fails(api.saveConsents([rec()]));
+    expect(e).toMatchObject({ mayHaveBeenProcessed: true, retryable: false, code: String(code) });
+    expect(calls()).toHaveLength(1);
+  });
+
+  it('invalid_request_id_throws_type_error_without_request_or_echo', async () => {
+    const { api, calls } = setup([]);
+    for (const bad of ['short', 'has space 12345', 'x'.repeat(65), 'ünicode-id-123']) {
+      const e = await api.saveWebhook('https://h.example', { requestId: bad }).catch((x: Error) => x);
+      expect(e).toBeInstanceOf(TypeError);
+      expect((e as Error).message).not.toContain(bad);
+    }
+    await expect(api.saveConsents([rec()], { requestId: 'bad' })).rejects.toBeInstanceOf(TypeError);
     expect(calls()).toHaveLength(0);
   });
 });

@@ -58,6 +58,10 @@ export interface Consent {
   status: string | null;
   consentDate: string | null;
   recipientType: string;
+  creationDate: string | null;
+  queryStatus: string | null;
+  /** Multi-query only. */
+  retailerAccessCount: number | null;
   /** Per-record result: 0 success, 81 not found, 120 bad request, 112 no answer from İYS. */
   errorCode: number;
   message: string | null;

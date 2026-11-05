@@ -9,6 +9,25 @@ import type {
   SaveConsentsResult,
 } from './types.js';
 
+function invalidResponse(
+  operation: string,
+  requestId: string,
+  detail: string,
+  mayHaveBeenProcessed: boolean,
+): NetgsmApiError {
+  return new NetgsmApiError({
+    api: 'iys',
+    operation,
+    status: 200,
+    code: 'INVALID_RESPONSE',
+    detail,
+    requestId,
+    retryAfterSec: null,
+    retryable: false,
+    mayHaveBeenProcessed,
+  });
+}
+
 export interface IysApiOptions {
   /** Default brand code (`NetgsmOptions.iysBrandCode`); a method's `brandCode` overrides it. */
   brandCode?: number;
@@ -57,8 +76,16 @@ export class IysApi {
       body,
       requestId: opts.requestId,
     });
+    if (typeof json.data?.uid !== 'string') {
+      throw invalidResponse(
+        'POST /iys/v1/consents',
+        requestId,
+        'response has no uid: the records may have been processed, check with searchConsents',
+        true,
+      );
+    }
     return {
-      uid: json.data?.uid,
+      uid: json.data.uid,
       rejected: Array.isArray(json.data?.erroritem) ? json.data.erroritem : [],
       requestId,
     };
@@ -90,14 +117,27 @@ export class IysApi {
         if (q.refId) qs.set(`data[${i}][refId]`, q.refId);
       });
       try {
-        const { json } = await this.transport.request('GET', '/consents', { query: qs });
-        const rows: Consent[] = Array.isArray(json.data) ? json.data : [];
+        const { json, requestId } = await this.transport.request('GET', '/consents', {
+          query: qs,
+        });
+        if (!Array.isArray(json.data) || json.data.length !== part.length) {
+          throw invalidResponse(
+            'GET /iys/v1/consents',
+            requestId,
+            'response data does not match the number of queries',
+            false,
+          );
+        }
+        const rows: Consent[] = json.data;
         // A single-record request may answer without a per-record errorCode.
         out.push(
           ...rows.map((r) => ({
             ...r,
             errorCode: typeof r.errorCode === 'number' ? r.errorCode : 0,
             message: r.message ?? null,
+            creationDate: r.creationDate ?? null,
+            queryStatus: r.queryStatus ?? null,
+            retailerAccessCount: r.retailerAccessCount ?? null,
           })),
         );
       } catch (err) {
@@ -111,6 +151,9 @@ export class IysApi {
             status: null,
             consentDate: null,
             recipientType: only.recipientType,
+            creationDate: null,
+            queryStatus: null,
+            retailerAccessCount: null,
             errorCode: 81,
             message: null,
           });
@@ -133,6 +176,9 @@ export class IysApi {
       body,
       requestId: opts.requestId,
     });
-    return { uid: json.data?.uid, requestId };
+    if (typeof json.data?.uid !== 'string') {
+      throw invalidResponse('POST /iys/v1/webhooks', requestId, 'response has no uid', true);
+    }
+    return { uid: json.data.uid, requestId };
   }
 }

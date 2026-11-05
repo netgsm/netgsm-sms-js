@@ -18,6 +18,8 @@ export interface IysRequestOptions {
   requestId?: string;
 }
 
+const REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
+
 /** Backoff for 429 / 503 and repeatable 5xx (seconds): 1, 2, 4 - at most three retries. */
 const BACKOFF_SEC = [1, 2, 4];
 
@@ -38,6 +40,9 @@ export class IysTransport {
   ): Promise<{ json: T; requestId: string }> {
     if (path.includes('?') || (path.length > 1 && path.endsWith('/'))) {
       throw new TypeError("request path must be canonical: no query string, no trailing '/'");
+    }
+    if (opts.requestId !== undefined && !REQUEST_ID.test(opts.requestId)) {
+      throw new TypeError('requestId must be 8-64 characters of A-Z a-z 0-9 . _ -');
     }
     const { tokens, now, sleep, maxRetryAfterSec } = this.o;
     const requestId = opts.requestId ?? globalThis.crypto.randomUUID();
@@ -89,7 +94,7 @@ export class IysTransport {
       try {
         if (text) {
           const v: unknown = JSON.parse(text);
-          if (typeof v === 'object' && v !== null) {
+          if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
             json = v;
             parsed = true;
           }
@@ -99,13 +104,13 @@ export class IysTransport {
       }
 
       if (res.ok) {
-        if (!parsed) {
+        if (!parsed || typeof json.success !== 'boolean') {
           throw new NetgsmApiError({
             api: 'iys',
             operation,
             status: res.status,
             code: 'INVALID_RESPONSE',
-            detail: 'response body is not a JSON object',
+            detail: 'response body is not a valid İYS envelope',
             requestId: res.headers.get('X-Thread-Id') ?? requestId,
             retryAfterSec: null,
             retryable: false,
@@ -148,7 +153,11 @@ export class IysTransport {
       }
 
       // 424, 500 and other 5xx (not 503): on POST /consents the record may be stored. Never retry.
-      const uncertain = res.status === 424 || (res.status >= 500 && res.status !== 503);
+      // On POST /consents, errorCode 110 / 112 means the same whatever the HTTP status.
+      const uncertain =
+        res.status === 424 ||
+        (res.status >= 500 && res.status !== 503) ||
+        (!repeatable && (code === '110' || code === '112'));
       if (uncertain && !repeatable) throw fail(false, true);
 
       if (res.status === 429 || res.status === 503 || uncertain) {
