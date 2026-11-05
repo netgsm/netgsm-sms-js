@@ -37,22 +37,17 @@ There are many ways to contribute to the project:
 2. Clone the repo: `git clone https://github.com/[KULLANICI_ADINIZ]/netgsm-sms-js.git`
 3. Navigate to the project directory: `cd netgsm-sms-js`
 4. Install dependencies: `npm install`
-5. Copy the `.env.example` file to `.env` and fill in the required variables:
-   ```
-   NETGSM_USERCODE=your_usercode
-   NETGSM_PASSWORD=your_password
-   NETGSM_HEADER=your_message_header
-   NETGSM_RECIPIENT=your_test_phone_number
-   ```
+5. Optional, for running the examples: copy `.env.example` to `.env`. The defaults point at the
+   local mock (`node test/fixtures/netgsm-sms-mock.mjs --port 4010 --quiet`), so no real credentials
+   are needed. Tests and examples never call the live API.
 
 ### Development Commands
 
-- `npm run build`: Compiles TypeScript code
-- `npm test`: Runs all tests
-- `npm run test:unit`: Runs only unit tests
-- `npm run test:integration`: Runs only integration tests
-- `npm run lint`: Checks code quality
-- `npm run lint:fix`: Automatically fixes code quality issues
+- `npm run build`: Builds the ESM and CommonJS bundles with type definitions (tsup)
+- `npm test`: Runs the unit tests (vitest, with a fake `fetch`)
+- `npm run test:mock`: Builds, then runs the end-to-end tests against the local mock
+- `npm run lint`: Checks code quality (ESLint)
+- `npm run typecheck`: Type-checks `src` and `test`, including the README snippets
 
 ## Development Process
 
@@ -131,21 +126,15 @@ Use the [PR template](./PULL_REQUEST_TEMPLATE.md) when creating a PR and fill in
 
 ## Writing Tests
 
-- Add unit tests to the `__tests__/unit` directory
-- Add integration tests to the `__tests__/integration` directory
-- Keep test coverage at least 90%
+- Add unit tests to `test/unit` (inject a fake `fetch`; never call a live API)
+- Add end-to-end tests to `test/mock` (they run against the local mock)
 - Use descriptive names for all test files (e.g. `netgsm.test.ts`)
-- Add descriptive comments to all tests
 
 ### Test Examples
 
 ```typescript
-describe('Netgsm.sendSms', () => {
-  it('should send SMS successfully', async () => {
-    // Test code here
-  });
-
-  it('should handle API errors correctly', async () => {
+describe('sms.send', () => {
+  it('posts the messages to /sms/v3/send', async () => {
     // Test code here
   });
 });
@@ -154,7 +143,9 @@ describe('Netgsm.sendSms', () => {
 ## Documentation
 
 - Add JSDoc comments for all public APIs
-- Keep README.md up-to-date
+- Keep README.md up-to-date. Every TypeScript code block in README.md is also in
+  `test/docs/readme-snippets.test-d.ts` (wrapped in functions so it compiles) and is checked by
+  `npm run typecheck`. When you change a README snippet, change it there too.
 - Add usage examples for new features
 - Update CHANGELOG.md for API changes
 
