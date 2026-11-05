@@ -1,28 +1,30 @@
 {
   "name": "@netgsm/sms",
-  "version": "1.1.11",
+  "version": "2.0.0",
   "description": "Netgsm API Client for SMS sending and reporting",
   "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/index.js",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./enums": {
-      "require": "./dist/enums.js",
-      "import": "./dist/enums.mjs",
-      "types": "./dist/enums.d.ts"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     }
   },
+  "sideEffects": false,
   "files": [
-    "dist/",
-    "LICENSE",
+    "dist",
     "README.md",
-    "CHANGELOG.md"
+    "MIGRATION.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
-  "types": "./dist/index.d.ts",
   "keywords": [
     "netgsm",
     "sms",
@@ -45,64 +47,23 @@
   },
   "homepage": "https://github.com/netgsm/netgsm-sms-js#readme",
   "engines": {
-    "node": ">=14.0.0"
-  },
-  "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/node": "^18.19.76",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "dotenv": "^16.4.7",
-    "eslint": "^8.56.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-import-resolver-typescript": "^3.8.3",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-jsdoc": "^48.11.0",
-    "eslint-plugin-prettier": "^5.2.3",
-    "husky": "^9.1.7",
-    "jest": "^29.7.0",
-    "jest-fetch-mock": "^3.0.3",
-    "lint-staged": "^15.4.3",
-    "prettier": "^3.5.2",
-    "rimraf": "^5.0.10",
-    "standard-version": "^9.5.0",
-    "ts-jest": "^29.1.2",
-    "typedoc": "^0.25.13",
-    "typedoc-plugin-markdown": "^3.17.1",
-    "typescript": "^5.3.3"
+    "node": ">=20"
   },
   "scripts": {
-    "clean": "rimraf dist coverage",
-    "prebuild": "npm run clean",
-    "build": "npm run build:cjs && npm run build:esm",
-    "build:cjs": "tsc --project tsconfig.json",
-    "build:esm": "tsc --project tsconfig.esm.json && npm run convert-to-mjs",
-    "convert-to-mjs": "node scripts/convert-to-mjs.js",
-    "build:all": "npm run build",
-    "test": "jest --coverage --verbose --testPathIgnorePatterns=__tests__/integration/",
-    "test:unit": "jest --coverage --verbose --testPathPattern=__tests__/unit",
-    "test:integration": "jest --coverage --verbose --testPathPattern=__tests__/integration --testPathIgnorePatterns=[]",
-    "test:watch": "jest --watch",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"__tests__/**/*.ts\"",
-    "prepare": "husky install && npm run build",
-    "prepublishOnly": "npm run test && npm run lint",
-    "docs": "typedoc --out docs src",
-    "release": "standard-version",
-    "release:patch": "standard-version --release-as patch",
-    "release:minor": "standard-version --release-as minor",
-    "release:major": "standard-version --release-as major"
+    "build": "tsup",
+    "test": "vitest run test/unit",
+    "test:mock": "vitest run test/mock",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "*.ts": [
-      "eslint --fix",
-      "prettier --write"
-    ]
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^20.19.43",
+    "eslint": "^9.39.5",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^3.2.7"
   }
 }
