@@ -38,16 +38,16 @@ export class TokenManager {
   /** After a failed refresh, keep using the old token until this time. */
   private retryAfterMs = 0;
   private readonly baseUrl: string;
-  private readonly username: string;
-  private readonly password: string;
+  readonly #username: string;
+  readonly #password: string;
   private readonly scope: string;
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => number;
 
   constructor(o: TokenManagerOptions) {
     this.baseUrl = o.baseUrl;
-    this.username = o.username;
-    this.password = o.password;
+    this.#username = o.username;
+    this.#password = o.password;
     this.scope = o.scope;
     this.fetchImpl = o.fetch;
     this.now = o.now;
@@ -93,8 +93,8 @@ export class TokenManager {
       this.tokens = undefined; // session ended or token invalidated: log in again
     }
     const r = await this.post('/auth/v3/token', {
-      username: this.username,
-      password: this.password,
+      username: this.#username,
+      password: this.#password,
       scope: this.scope,
     });
     if (!r.ok) throw this.identityError('POST /auth/v3/token', r, await readJson(r));
