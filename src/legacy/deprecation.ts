@@ -36,7 +36,7 @@ export function warnDeprecated(method: string): void {
   const replacement = REPLACEMENTS[method];
   const hint = replacement ? `use ${replacement}() instead` : 'use the new API instead';
   emit(
-    `Netgsm#${method}() is deprecated since 2.0.0 and will be removed in 3.0.0; ${hint}. See MIGRATION.md.`,
+    `Netgsm#${method}() is deprecated since 2.0.0 and will be removed in 3.0.0; ${hint}. See MIGRATION.md#method-mapping.`,
     `NETGSM_LEGACY_${method.toUpperCase()}`,
   );
 }

@@ -76,16 +76,39 @@ describe('legacy request shape', () => {
     expect(new Headers(init!.headers).get('Authorization')).toBeNull();
   });
 
-  it('ignores baseUrl: legacy always uses the legacy host', async () => {
-    const { f, n } = client({ baseUrl: 'http://127.0.0.1:4010' });
-    await send(n);
-    expect(f.mock.calls[0]![0]).toMatch(/^https:\/\/api\.netgsm\.com\.tr\//);
+  it('uses the legacy host by default and with an explicit LIVE baseUrl', async () => {
+    const a = client();
+    await send(a.n);
+    expect(a.f.mock.calls[0]![0]).toMatch(/^https:\/\/api\.netgsm\.com\.tr\//);
+    const b = client({ baseUrl: pkg.NetgsmEnvironment.LIVE + '/' });
+    await send(b.n);
+    expect(b.f.mock.calls[0]![0]).toMatch(/^https:\/\/api\.netgsm\.com\.tr\//);
   });
 
-  it('validates appname as a string', () => {
-    expect(() => new Netgsm({ username: 'u', password: SECRET, appname: 5 as never })).toThrow(
-      /appname/,
-    );
+  it('refuses to run against a non-live baseUrl, without any request', async () => {
+    const s = client({ baseUrl: pkg.NetgsmEnvironment.SANDBOX });
+    const e1 = (await send(s.n).catch((x: unknown) => x)) as Error;
+    expect(e1).toBeInstanceOf(Error);
+    expect(e1.message).toMatch(/live legacy API/);
+    expect(e1.message).toMatch(/netgsm\.sms\./);
+    expect(e1.message).not.toContain(SECRET);
+    expect(s.f.mock.calls).toHaveLength(0);
+
+    const m = client({ baseUrl: 'http://127.0.0.1:4010' });
+    await expect(m.n.checkBalance({ stip: 2 })).rejects.toThrow(/live legacy API/);
+    await expect(m.n.getHeaders()).rejects.toThrow(/live legacy API/);
+    expect(m.f.mock.calls).toHaveLength(0);
+  });
+
+  it('mirrors 1.x appname handling: falsy is none, other values are stringified', async () => {
+    for (const appname of [false, 0, '', null, NaN]) {
+      const { f, n } = client({ appname });
+      await send(n);
+      expect(JSON.parse(f.mock.calls[0]![1]!.body as string)).not.toHaveProperty('appname');
+    }
+    const { f, n } = client({ appname: 123 });
+    await send(n);
+    expect(JSON.parse(f.mock.calls[0]![1]!.body as string).appname).toBe('123-sdk-js');
   });
 });
 
@@ -101,7 +124,7 @@ describe('deprecation warnings', () => {
     });
     expect(warnings[0]!.message).toContain('sendRestSms');
     expect(warnings[0]!.message).toContain('netgsm.sms.send');
-    expect(warnings[0]!.message).toContain('MIGRATION.md');
+    expect(warnings[0]!.message).toContain('MIGRATION.md#method-mapping');
   });
 
   it('warns once, not on every call, and separately per method', async () => {

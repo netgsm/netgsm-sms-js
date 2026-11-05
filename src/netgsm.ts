@@ -52,7 +52,8 @@ export interface NetgsmOptions {
   fetch?: typeof fetch;
   now?: () => number;
   /**
-   * Application name sent by the legacy 1.x methods as `<appname>-sdk-js`. Has no effect on `sms` / `iys`.
+   * Application name sent by the legacy 1.x methods as `<appname>-sdk-js` (falsy means none, other
+   * non-strings are stringified, as in 1.x). Has no effect on `sms` / `iys`.
    * @deprecated since 2.0.0; only the deprecated 1.x methods use it. See MIGRATION.md.
    */
   appname?: string;
@@ -100,7 +101,6 @@ function assertOptions(o: NetgsmOptions): void {
   if (o.enterpriseOtp !== undefined && typeof o.enterpriseOtp !== 'boolean') bad('enterpriseOtp', 'a boolean');
   if (o.fetch !== undefined && typeof o.fetch !== 'function') bad('fetch', 'a function');
   if (o.now !== undefined && typeof o.now !== 'function') bad('now', 'a function');
-  if (o.appname !== undefined && typeof o.appname !== 'string') bad('appname', 'a string');
   if (o.dangerouslyAllowBrowser !== undefined && typeof o.dangerouslyAllowBrowser !== 'boolean') {
     bad('dangerouslyAllowBrowser', 'a boolean');
   }
@@ -121,12 +121,17 @@ const BROWSER_ERROR =
   'Netgsm credentials must stay server-side: do not use this SDK in a browser. ' +
   'Set dangerouslyAllowBrowser: true only if you accept the risk.';
 
+const LEGACY_DISABLED_ERROR =
+  'The deprecated 1.x methods always use the live legacy API and have no sandbox or mock, so they ' +
+  'are disabled when baseUrl points to another environment. Use netgsm.sms.* there.';
+
 export class Netgsm {
   readonly #sms: SmsApi;
   readonly #iys: IysApi;
   readonly #baseUrl: string;
   readonly #legacy: LegacyClient;
   readonly #allowBrowser: boolean;
+  readonly #legacyEnabled: boolean;
 
   constructor(options: NetgsmOptions) {
     // 1.x accepted numeric credentials (e.g. read from JSON) and appname: null; keep that.
@@ -135,7 +140,6 @@ export class Netgsm {
           ...options,
           username: coerceCredential(options.username),
           password: coerceCredential(options.password),
-          ...((options.appname as unknown) === null ? { appname: undefined } : {}),
         }
       : options;
     if (!o || typeof o.username !== 'string' || o.username === '') {
@@ -173,10 +177,12 @@ export class Netgsm {
       userAgent: `netgsm-sms-js/${VERSION}`,
     };
     this.#baseUrl = baseUrl;
+    this.#legacyEnabled = baseUrl === NetgsmEnvironment.LIVE;
     this.#legacy = new LegacyClient({
       username: o.username,
       password: o.password,
-      ...(o.appname !== undefined ? { appname: o.appname } : {}),
+      // 1.x: a falsy appname means none; any other value was interpolated into `${appname}-sdk-js`.
+      ...(o.appname ? { appname: String(o.appname) } : {}),
       fetch: fetchImpl,
     });
     this.#sms = new SmsApiClass(new SmsTransport(transportOptions), {
@@ -210,44 +216,51 @@ export class Netgsm {
     return this.#legacy;
   }
 
+  /** Runs a deprecated 1.x call; rejects without a request unless baseUrl is the live environment. */
+  #legacyRun<T>(method: string, call: (client: LegacyClient) => Promise<T>): Promise<T> {
+    const client = this.#legacyUse(method);
+    if (!this.#legacyEnabled) return Promise.reject(new Error(LEGACY_DISABLED_ERROR));
+    return call(client);
+  }
+
   /** @deprecated since 2.0.0 — use netgsm.sms.send; see MIGRATION.md. Removed in 3.0.0. */
   sendRestSms(payload: RestSmsPayload): Promise<RestSmsResponse> {
-    return this.#legacyUse('sendRestSms').sendRestSms(payload);
+    return this.#legacyRun('sendRestSms', (c) => c.sendRestSms(payload));
   }
 
   /** @deprecated since 2.0.0 — use netgsm.sms.sendOtp; see MIGRATION.md. Removed in 3.0.0. */
   sendOtpSms(payload: OtpSmsPayload): Promise<OtpSmsResponse> {
-    return this.#legacyUse('sendOtpSms').sendOtpSms(payload);
+    return this.#legacyRun('sendOtpSms', (c) => c.sendOtpSms(payload));
   }
 
   /** @deprecated since 2.0.0 — use netgsm.sms.cancel; see MIGRATION.md. Removed in 3.0.0. */
   cancelSms(payload: CancelSmsPayload): Promise<CancelSmsResponse> {
-    return this.#legacyUse('cancelSms').cancelSms(payload);
+    return this.#legacyRun('cancelSms', (c) => c.cancelSms(payload));
   }
 
   /** @deprecated since 2.0.0 — use netgsm.sms.getReport; see MIGRATION.md. Removed in 3.0.0. */
   getReport(payload: ReportPayload): Promise<LegacyReportResponse> {
-    return this.#legacyUse('getReport').getReport(payload);
+    return this.#legacyRun('getReport', (c) => c.getReport(payload));
   }
 
   /** @deprecated since 2.0.0 — use netgsm.sms.getStats; see MIGRATION.md. Removed in 3.0.0. */
   getStats(payload: StatsPayload): Promise<LegacyStatsResponse> {
-    return this.#legacyUse('getStats').getStats(payload);
+    return this.#legacyRun('getStats', (c) => c.getStats(payload));
   }
 
   /** @deprecated since 2.0.0 — use netgsm.sms.listSenders; see MIGRATION.md. Removed in 3.0.0. */
   getHeaders(payload?: HeaderQueryPayload): Promise<HeaderQueryResponse> {
-    return this.#legacyUse('getHeaders').getHeaders(payload);
+    return this.#legacyRun('getHeaders', (c) => c.getHeaders(payload));
   }
 
   /** @deprecated since 2.0.0 — use netgsm.sms.getInbox; see MIGRATION.md. Removed in 3.0.0. */
   getInbox(payload?: SmsInboxPayload): Promise<SmsInboxResponse> {
-    return this.#legacyUse('getInbox').getInbox(payload);
+    return this.#legacyRun('getInbox', (c) => c.getInbox(payload));
   }
 
   /** @deprecated since 2.0.0 — use netgsm.sms.getBalance; see MIGRATION.md. Removed in 3.0.0. */
   checkBalance(payload: BalancePayload): Promise<BalanceResponse> {
-    return this.#legacyUse('checkBalance').checkBalance(payload);
+    return this.#legacyRun('checkBalance', (c) => c.checkBalance(payload));
   }
 
   toJSON(): { baseUrl: string } {
