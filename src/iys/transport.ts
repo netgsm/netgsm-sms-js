@@ -25,10 +25,10 @@ const BACKOFF_SEC = [1, 2, 4];
 
 /** İYS v1 request pipeline: bearer auth, one re-login on 401, envelope errors and the v1 retry policy. */
 export class IysTransport {
-  private readonly o: IysTransportOptions;
+  readonly #o: IysTransportOptions;
 
   constructor(o: IysTransportOptions) {
-    this.o = o;
+    this.#o = o;
   }
 
   /** `path` is relative to `/iys/v1` (e.g. `/consents`). Resolves with the parsed success envelope. */
@@ -44,10 +44,10 @@ export class IysTransport {
     if (opts.requestId !== undefined && !REQUEST_ID.test(opts.requestId)) {
       throw new TypeError('requestId must be 8-64 characters of A-Z a-z 0-9 . _ -');
     }
-    const { tokens, now, sleep, maxRetryAfterSec } = this.o;
+    const { tokens, now, sleep, maxRetryAfterSec } = this.#o;
     const requestId = opts.requestId ?? globalThis.crypto.randomUUID();
     const qs = opts.query?.toString() ?? '';
-    const url = `${this.o.baseUrl}/iys/v1${path}${qs ? `?${qs}` : ''}`;
+    const url = `${this.#o.baseUrl}/iys/v1${path}${qs ? `?${qs}` : ''}`;
     const operation = `${method} /iys/v1${path}`;
     // Only POST /consents must never be repeated: the consent may already be recorded.
     // Reads and POST /webhooks (replaces the previous address) are safe to repeat.
@@ -62,11 +62,11 @@ export class IysTransport {
         Accept: 'application/json',
         'X-Request-Id': requestId,
       };
-      if (typeof window === 'undefined') headers['User-Agent'] = this.o.userAgent;
+      if (typeof window === 'undefined') headers['User-Agent'] = this.#o.userAgent;
       if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
       let res: Response;
       try {
-        res = await this.o.fetch(url, {
+        res = await this.#o.fetch(url, {
           method,
           headers,
           body: opts.body === undefined ? undefined : JSON.stringify(opts.body),

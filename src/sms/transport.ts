@@ -56,10 +56,10 @@ function serializeQuery(query: Record<string, QueryValue>): string {
 
 /** SMS v3 request pipeline: bearer auth, one re-login on 401, and the v3 retry policy. */
 export class SmsTransport {
-  private readonly o: SmsTransportOptions;
+  readonly #o: SmsTransportOptions;
 
   constructor(o: SmsTransportOptions) {
-    this.o = o;
+    this.#o = o;
   }
 
   /** `path` is relative to `/sms/v3` (e.g. `/send`). */
@@ -71,10 +71,10 @@ export class SmsTransport {
     if (path.includes('?') || (path.length > 1 && path.endsWith('/'))) {
       throw new TypeError("request path must be canonical: no query string, no trailing '/'");
     }
-    const { tokens, now, sleep, maxRetryAfterSec } = this.o;
+    const { tokens, now, sleep, maxRetryAfterSec } = this.#o;
     const query = opts.query ?? {};
     const qs = serializeQuery(query);
-    const url = `${this.o.baseUrl}/sms/v3${path}${qs ? `?${qs}` : ''}`;
+    const url = `${this.#o.baseUrl}/sms/v3${path}${qs ? `?${qs}` : ''}`;
     const operation = `${method} /sms/v3${path}`;
     const repeatable = method === 'GET' || isSafeToRepeat(method, path);
     let reloggedIn = false;
@@ -88,11 +88,11 @@ export class SmsTransport {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
       };
-      if (typeof window === 'undefined') headers['User-Agent'] = this.o.userAgent;
+      if (typeof window === 'undefined') headers['User-Agent'] = this.#o.userAgent;
       if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
       let res: Response;
       try {
-        res = await this.o.fetch(url, {
+        res = await this.#o.fetch(url, {
           method,
           headers,
           body: opts.body === undefined ? undefined : JSON.stringify(opts.body),

@@ -35,16 +35,16 @@ export interface IysApiOptions {
 
 /** İYS API v1: consent records and the consent webhook. Writes legal records: errors are never swallowed. */
 export class IysApi {
-  private readonly transport: IysTransport;
-  private readonly defaultBrandCode: number | undefined;
+  readonly #transport: IysTransport;
+  readonly #defaultBrandCode: number | undefined;
 
   constructor(transport: IysTransport, opts: IysApiOptions = {}) {
-    this.transport = transport;
-    this.defaultBrandCode = opts.brandCode;
+    this.#transport = transport;
+    this.#defaultBrandCode = opts.brandCode;
   }
 
   private brand(override: number | undefined): number {
-    const b = override ?? this.defaultBrandCode;
+    const b = override ?? this.#defaultBrandCode;
     if (b === undefined || !Number.isInteger(b) || b < 1) {
       throw new TypeError(
         'İYS brandCode is required: set iysBrandCode in the client options or pass brandCode',
@@ -72,7 +72,7 @@ export class IysApi {
       ...(opts.refId ? { refId: opts.refId } : {}),
       permissions,
     };
-    const { json, requestId } = await this.transport.request('POST', '/consents', {
+    const { json, requestId } = await this.#transport.request('POST', '/consents', {
       body,
       requestId: opts.requestId,
     });
@@ -117,7 +117,7 @@ export class IysApi {
         if (q.refId) qs.set(`data[${i}][refId]`, q.refId);
       });
       try {
-        const { json, requestId } = await this.transport.request('GET', '/consents', {
+        const { json, requestId } = await this.#transport.request('GET', '/consents', {
           query: qs,
         });
         if (!Array.isArray(json.data) || json.data.length !== part.length) {
@@ -172,7 +172,7 @@ export class IysApi {
   ): Promise<{ uid: string; requestId: string }> {
     const brandCode = this.brand(opts.brandCode);
     const body = { brandCode, ...(opts.path ? { path: opts.path } : {}), webhookUrl };
-    const { json, requestId } = await this.transport.request('POST', '/webhooks', {
+    const { json, requestId } = await this.#transport.request('POST', '/webhooks', {
       body,
       requestId: opts.requestId,
     });

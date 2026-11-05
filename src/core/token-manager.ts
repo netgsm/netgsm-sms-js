@@ -33,10 +33,10 @@ export interface TokenManagerOptions {
  * refresh; credentials and tokens never reach an error.
  */
 export class TokenManager {
-  private tokens?: Tokens;
-  private inflight?: Promise<string>;
+  #tokens?: Tokens;
+  #inflight?: Promise<string>;
   /** After a failed refresh, keep using the old token until this time. */
-  private retryAfterMs = 0;
+  #retryAfterMs = 0;
   private readonly baseUrl: string;
   readonly #username: string;
   readonly #password: string;
@@ -55,15 +55,15 @@ export class TokenManager {
 
   /** A valid access token; refreshes first once inside the last min(5 min, 10% of lifetime). */
   async get(): Promise<string> {
-    const t = this.tokens;
+    const t = this.#tokens;
     const now = this.now();
-    if (t && (now < t.expiresAt - t.marginMs || now < this.retryAfterMs) && now < t.expiresAt) {
+    if (t && (now < t.expiresAt - t.marginMs || now < this.#retryAfterMs) && now < t.expiresAt) {
       return t.access;
     }
-    this.inflight ??= this.renew().finally(() => {
-      this.inflight = undefined;
+    this.#inflight ??= this.renew().finally(() => {
+      this.#inflight = undefined;
     });
-    return this.inflight;
+    return this.#inflight;
   }
 
   /**
@@ -71,26 +71,26 @@ export class TokenManager {
    * token, the new one is kept; otherwise the next get() logs in again.
    */
   invalidate(staleAccessToken: string): void {
-    if (this.tokens?.access === staleAccessToken) this.tokens = undefined;
+    if (this.#tokens?.access === staleAccessToken) this.#tokens = undefined;
   }
 
   private async renew(): Promise<string> {
-    const old = this.tokens;
+    const old = this.#tokens;
     if (old) {
       const r = await this.post('/auth/v3/token/refresh', { refresh_token: old.refresh });
       if (r.ok) return this.store((await r.json()) as TokenResponse);
       const p = await readJson(r);
       // invalidate() may have cleared the token while the refresh was pending.
-      const invalidated = this.tokens !== old;
+      const invalidated = this.#tokens !== old;
       if (p.code !== 'invalid_refresh_token' && !invalidated) {
         // Transient failure (429, 5xx): keep the old token while it is valid and retry in 30 s.
         if (this.now() < old.expiresAt) {
-          this.retryAfterMs = this.now() + REFRESH_BACKOFF_MS;
+          this.#retryAfterMs = this.now() + REFRESH_BACKOFF_MS;
           return old.access;
         }
         throw this.identityError('POST /auth/v3/token/refresh', r, p);
       }
-      this.tokens = undefined; // session ended or token invalidated: log in again
+      this.#tokens = undefined; // session ended or token invalidated: log in again
     }
     const r = await this.post('/auth/v3/token', {
       username: this.#username,
@@ -103,13 +103,13 @@ export class TokenManager {
 
   private store(t: TokenResponse): string {
     const lifeMs = t.expires_in * 1000;
-    this.tokens = {
+    this.#tokens = {
       access: t.access_token,
       refresh: t.refresh_token,
       expiresAt: this.now() + lifeMs,
       marginMs: Math.min(MAX_MARGIN_MS, lifeMs / 10),
     };
-    this.retryAfterMs = 0;
+    this.#retryAfterMs = 0;
     return t.access_token;
   }
 

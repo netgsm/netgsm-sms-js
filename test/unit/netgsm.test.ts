@@ -40,6 +40,11 @@ describe('Netgsm facade', () => {
       expect(() => new Netgsm({ ...opts, baseUrl })).toThrow(TypeError);
     }
     expect(() => new Netgsm({ ...opts, baseUrl: 'ftp://u:pw@x.test' })).toThrow(/baseUrl/);
+    for (const baseUrl of [5, {}, 'https://x.test?a=1', 'https://x.test#h']) {
+      expect(() => new Netgsm({ ...opts, baseUrl: baseUrl as unknown as string })).toThrow(
+        "baseUrl must be a valid http(s) URL",
+      );
+    }
   });
 
   it('exports NetgsmEnvironment and public API', () => {
@@ -106,7 +111,7 @@ describe('Netgsm facade', () => {
     expect(calls[0]!.body).toMatchObject({ scope: 'sms' });
   });
 
-  it('works when the injected fetch is called detached (this-sensitive)', async () => {
+  it('works when the default global fetch is this-sensitive', async () => {
     const orig = globalThis.fetch;
     const { fetch: inner } = fakeFetch([tok, { status: 200, body: {} }]);
     globalThis.fetch = function (this: unknown, ...a: Parameters<typeof fetch>) {
@@ -120,10 +125,34 @@ describe('Netgsm facade', () => {
     }
   });
 
-  it('refuses browser-like environments unless explicitly allowed', () => {
-    (globalThis as { window?: unknown }).window = {};
+  it('wraps an injected this-sensitive fetch', async () => {
+    const { fetch: inner } = fakeFetch([tok, { status: 200, body: {} }]);
+    const sensitive = function (this: unknown, ...a: Parameters<typeof fetch>) {
+      if (this !== undefined && this !== globalThis) throw new TypeError('Illegal invocation');
+      return inner(...a);
+    } as typeof fetch;
+    await new Netgsm({ ...opts, fetch: sensitive }).sms.getBalance();
+  });
+
+  it('refuses window-only and document-only environments unless allowed', () => {
+    const g = globalThis as { window?: unknown; document?: unknown };
+    g.window = {};
     expect(() => new Netgsm(opts)).toThrow(/server/i);
     expect(() => new Netgsm({ ...opts, dangerouslyAllowBrowser: true })).not.toThrow();
+    delete g.window;
+    g.document = {};
+    expect(() => new Netgsm(opts)).toThrow(/server/i);
+  });
+
+  it('allows window when running on Deno', () => {
+    const g = globalThis as { window?: unknown; Deno?: unknown };
+    g.window = {};
+    g.Deno = {};
+    try {
+      expect(() => new Netgsm(opts)).not.toThrow();
+    } finally {
+      delete g.Deno;
+    }
   });
 
   it('does not expose the password', () => {
@@ -133,5 +162,41 @@ describe('Netgsm facade', () => {
     expect(inspect(n, { depth: 10, showHidden: true })).not.toContain(SECRET);
     expect(JSON.stringify(n.sms)).not.toContain(SECRET);
     expect(inspect(n.iys, { depth: 10 })).not.toContain(SECRET);
+  });
+
+  it('never exposes tokens or password after a login', async () => {
+    const { fetch } = fakeFetch([
+      { status: 200, body: { access_token: 'ACCESS_TOKEN_XYZ', refresh_token: 'REFRESH_TOKEN_XYZ', expires_in: 3600 } },
+      { status: 200, body: { success: true, errorCode: 0, data: [] } },
+      {
+        status: 200,
+        body: {
+          success: true,
+          errorCode: 0,
+          data: [
+            {
+              type: 'MESAJ', source: 'HS_WEB', recipient: '+905551234567', status: 'ONAY',
+              consentDate: '2026-11-05 10:00:00', recipientType: 'BIREYSEL', errorCode: 0, message: null,
+            },
+          ],
+        },
+      },
+    ]);
+    const n = new Netgsm({ ...opts, fetch, iysBrandCode: 1 });
+    await n.sms.getBalance();
+    await n.iys.searchConsents([
+      { recipient: '+905551234567', recipientType: 'BIREYSEL', type: 'MESAJ' },
+    ]);
+    for (const x of [n, n.sms, n.iys]) {
+      for (const out of [
+        String(x),
+        JSON.stringify(x),
+        inspect(x, { depth: Infinity, showHidden: true }),
+      ]) {
+        expect(out).not.toContain('ACCESS_TOKEN_XYZ');
+        expect(out).not.toContain('REFRESH_TOKEN_XYZ');
+        expect(out).not.toContain(SECRET);
+      }
+    }
   });
 });

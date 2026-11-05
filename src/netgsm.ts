@@ -26,16 +26,25 @@ export interface NetgsmOptions {
   dangerouslyAllowBrowser?: boolean;
 }
 
-function normalizeBaseUrl(raw: string): string {
+const BASE_URL_ERROR =
+  'baseUrl must be a valid http(s) URL without credentials, query or fragment';
+
+function normalizeBaseUrl(raw: unknown): string {
+  if (typeof raw !== 'string') throw new TypeError(BASE_URL_ERROR);
   const trimmed = raw.trim().replace(/\/+$/, '');
   let ok = false;
   try {
     const u = new URL(trimmed);
-    ok = (u.protocol === 'http:' || u.protocol === 'https:') && !u.username && !u.password;
+    ok =
+      (u.protocol === 'http:' || u.protocol === 'https:') &&
+      !u.username &&
+      !u.password &&
+      !u.search &&
+      !u.hash;
   } catch {
     ok = false;
   }
-  if (!ok) throw new TypeError('baseUrl must be a valid http(s) URL without credentials');
+  if (!ok) throw new TypeError(BASE_URL_ERROR);
   return trimmed;
 }
 
@@ -46,7 +55,8 @@ export class Netgsm {
 
   constructor(o: NetgsmOptions) {
     if (
-      (typeof window !== 'undefined' || typeof document !== 'undefined') &&
+      (typeof document !== 'undefined' ||
+        (typeof window !== 'undefined' && typeof (globalThis as { Deno?: unknown }).Deno === 'undefined')) &&
       o?.dangerouslyAllowBrowser !== true
     ) {
       throw new Error(
@@ -62,7 +72,11 @@ export class Netgsm {
     }
     const baseUrl = normalizeBaseUrl(o.baseUrl ?? NetgsmEnvironment.LIVE);
     const userFetch = o.fetch;
-    const fetchImpl: typeof fetch = userFetch ?? ((...a) => globalThis.fetch(...a));
+    // Always wrap: a bare fetch called as a method (this.o.fetch) throws Illegal invocation
+    // in browsers and Workers.
+    const fetchImpl: typeof fetch = userFetch
+      ? (...a) => userFetch(...a)
+      : (...a) => globalThis.fetch(...a);
     const now = o.now ?? Date.now;
 
     const tokens = new TokenManager({
