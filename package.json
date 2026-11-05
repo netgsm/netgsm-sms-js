@@ -52,8 +52,8 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run test/unit",
-    "test:mock": "vitest run test/mock",
-    "lint": "eslint src test",
+    "test:mock": "npm run build && vitest run --config vitest.mock.config.ts",
+    "lint": "eslint src test scripts",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
   },
