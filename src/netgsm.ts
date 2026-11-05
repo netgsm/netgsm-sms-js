@@ -83,18 +83,20 @@ class Netgsm {
 
   /**
    * Generate Base64 encoded authorization token
+   *
+   * The credentials are encoded as UTF-8 before btoa, so the token matches what
+   * Buffer produced on Node.js, and no runtime needs Buffer or a window object.
    * @param {string} username - Username for authentication.
    * @param {string} password - Password for authentication.
    * @returns {string} - Base64 encoded token.
    */
   private generateAuthToken(username: string, password: string): string {
-    if (typeof window !== "undefined" && typeof btoa === "function") {
-      // Browser
-      return btoa(`${username}:${password}`);
-    } else {
-      // Server
-      return Buffer.from(`${username}:${password}`).toString("base64");
-    }
+    const bytes = new TextEncoder().encode(`${username}:${password}`);
+    let binary = "";
+    bytes.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
   }
 
   /**
