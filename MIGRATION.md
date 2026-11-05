@@ -48,7 +48,7 @@ to configure and no token to handle.
 | `sendOtpSms` | `sms.sendOtp` | `msgheader` -> `sender`, `msg` -> `text`, `no` -> `recipient`. Returns `{ jobId }`. |
 | `cancelSms` | `sms.cancel` | `{ jobid }` -> `{ jobId }`. Returns `{ jobId, cancelledAt }`. |
 | `getReport` | `sms.getReport` | `bulkIds` -> `jobIds`; see [Reports](#reports-stats-and-inbox). |
-| `getStats` | `sms.getStats` | `jobid` -> `jobId`; `senddate` -> `month` (`yyyy-MM`). |
+| `getStats` | `sms.getStats` | `jobid` -> `jobId`; `senddate` -> `month`: pass the `yyyy-MM` of the send date; defaults to the current month. |
 | `getHeaders` | `sms.listSenders` | Returns `{ count, senders }`; each sender has `name`, `type`, `brandCode`, `usable`, `reason`. |
 | `getInbox` | `sms.getInbox` | `startdate` / `stopdate` -> `startAt` / `stopAt` (ISO-8601 with offset). |
 | `checkBalance` | `sms.getBalance` | `stip` stays (`1`, `2`, `3`); new optional `service`; `appkey` is gone. |
@@ -79,7 +79,7 @@ await netgsm.sms.send({
 |---|---|---|
 | `msgheader` | `sender` | Matched exactly, case-sensitive. |
 | `messages[].msg` | `messages[].text` | |
-| `messages[].no` | `messages[].recipient` | Written `90XXXXXXXXXX` (12 digits) in the v3 API. |
+| `messages[].no` | `messages[].recipient` | Written `90XXXXXXXXXX` (12 digits) in the v3 API, or `-` followed by the country code and number for international (for example `-4915112345678`; needs account permission). |
 | `encoding: 'TR'` | `encoding: 'TURKISH'` | v3 accepts `'DEFAULT'`, `'TURKISH'` and `'UNICODE'`. For any other 1.x value, check the API documentation for the closest v3 value instead of assuming. |
 | `startdate` (`ddMMyyyyHHmm`) | `startAt` | ISO-8601 with a UTC offset, for example `2026-08-31T09:00:00+03:00`. |
 | `stopdate` (`ddMMyyyyHHmm`) | `stopAt` | Same format as `startAt`. |

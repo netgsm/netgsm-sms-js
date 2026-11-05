@@ -8,7 +8,8 @@ Official JavaScript / TypeScript client for the Netgsm SMS API v3 (`/sms/v3`) an
 (`/iys/v1`), with automatic token handling (`/auth/v3`).
 
 - Zero runtime dependencies; ESM and CommonJS builds with bundled types.
-- Node.js 20 or later. Uses only `fetch`, so it also runs on Bun, Deno and Cloudflare Workers.
+- Designed for Node.js 20+, Bun, Deno and Cloudflare Workers (only web-standard APIs, no Node-only
+  modules); CI-tested on Node 20/22/24 and Bun.
 - One method per API operation, typed after the API specification (field names are the API's own).
 - Coming from 1.x? Read [MIGRATION.md](./MIGRATION.md). Version 2 targets a different API and is a
   breaking change.
@@ -45,7 +46,8 @@ console.log(sent.jobId, sent.status, sent.accepted, sent.rejected);
 
 CommonJS works too: `const { Netgsm } = require('@netgsm/sms');`
 
-Recipients use the SMS API format `90XXXXXXXXXX` (12 digits). The token is fetched on the first
+Recipients use the SMS API format `90XXXXXXXXXX` (12 digits), or `-` followed by the country code and number for international
+sends (for example `-4915112345678`; the account needs international permission). The token is fetched on the first
 request, cached, refreshed before it expires and renewed once on a `401`; you never handle it.
 
 ### Client options
@@ -199,7 +201,8 @@ before the answer was lost.
 deduplicated: a second `send` creates a second job and your recipients get the message twice. Check
 `sms.getReport` for the period (`startAt` / `stopAt`) first to see whether the job already exists. The client
 itself never retries a send after a possibly-processed failure; it only re-logins once on a `401`,
-waits once for a `Retry-After` of at most `maxRetryAfterSec` on a `429`, and backs off on `503` for
+waits once for a `Retry-After` of at most `maxRetryAfterSec` on a `429` (except `getBalance`, which
+never waits on 429), and backs off on `503` for
 requests that are safe to repeat.
 
 Invalid arguments (for example a malformed `baseUrl` or an out-of-range `chunkSize`) throw
@@ -340,7 +343,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md), [SECURITY.md](./SECURITY.md) and
 
 ## Support
 
-Include the `requestId` from the error when you contact Netgsm technical support. Account and
+Include the `requestId` from the error when you contact Netgsm technical support:
+[teknikdestek@netgsm.com.tr](mailto:teknikdestek@netgsm.com.tr). Account and
 process questions are covered in the knowledge base linked above.
 
 ## License
