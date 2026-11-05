@@ -135,6 +135,47 @@ describe('TokenManager', () => {
     expect(JSON.stringify(e)).not.toContain('s3cret!');
   });
 
+  it('invalidate_during_inflight_refresh_relogs', async () => {
+    let t = 0;
+    const calls: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const json = (status: number, body: unknown) =>
+      new Response(JSON.stringify(body), { status });
+    const impl = async (input: RequestInfo | URL): Promise<Response> => {
+      const url = String(input);
+      calls.push(url);
+      if (calls.length === 1) return json(200, tokenBody(1));
+      if (url.endsWith('/refresh')) {
+        await gate;
+        return json(503, {});
+      }
+      return json(200, tokenBody(3));
+    };
+    const manager = new TokenManager({
+      baseUrl: BASE,
+      username: 'user',
+      password: 's3cret!',
+      scope: 'sms',
+      fetch: impl as typeof fetch,
+      now: () => t,
+    });
+    await manager.get();
+    t = 3600_000 - 299_000;
+    const pending = manager.get();
+    await Promise.resolve();
+    manager.invalidate('a1');
+    release();
+    expect(await pending).toBe('a3');
+    expect(calls).toEqual([
+      `${BASE}/auth/v3/token`,
+      `${BASE}/auth/v3/token/refresh`,
+      `${BASE}/auth/v3/token`,
+    ]);
+  });
+
   it('invalidate_only_stale', async () => {
     const { manager, calls } = setup([
       { status: 200, body: tokenBody(1) },

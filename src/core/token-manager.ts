@@ -75,19 +75,22 @@ export class TokenManager {
   }
 
   private async renew(): Promise<string> {
-    if (this.tokens) {
-      const r = await this.post('/auth/v3/token/refresh', { refresh_token: this.tokens.refresh });
+    const old = this.tokens;
+    if (old) {
+      const r = await this.post('/auth/v3/token/refresh', { refresh_token: old.refresh });
       if (r.ok) return this.store((await r.json()) as TokenResponse);
       const p = await readJson(r);
-      if (p.code !== 'invalid_refresh_token') {
+      // invalidate() may have cleared the token while the refresh was pending.
+      const invalidated = this.tokens !== old;
+      if (p.code !== 'invalid_refresh_token' && !invalidated) {
         // Transient failure (429, 5xx): keep the old token while it is valid and retry in 30 s.
-        if (this.now() < this.tokens.expiresAt) {
+        if (this.now() < old.expiresAt) {
           this.retryAfterMs = this.now() + REFRESH_BACKOFF_MS;
-          return this.tokens.access;
+          return old.access;
         }
         throw this.identityError('POST /auth/v3/token/refresh', r, p);
       }
-      this.tokens = undefined; // session ended: log in again
+      this.tokens = undefined; // session ended or token invalidated: log in again
     }
     const r = await this.post('/auth/v3/token', {
       username: this.username,
