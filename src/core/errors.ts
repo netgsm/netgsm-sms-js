@@ -1,7 +1,7 @@
 /** A recipient the API refused to deliver to (422 NO_DELIVERABLE_MESSAGES). */
 export interface RejectedItem {
   index: number;
-  recipient: string;
+  recipient: string | null;
   reason: string;
 }
 
