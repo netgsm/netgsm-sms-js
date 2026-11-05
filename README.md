@@ -190,12 +190,15 @@ try {
 | `retryable` | Whether repeating the same request later can succeed. |
 | `retryAfterSec` | The `Retry-After` value, or `null`. |
 | `mayHaveBeenProcessed` | `true` when the API may have accepted the request despite the failure. |
+| `data` | İYS `data` payload of an error response (for example `erroritem`). |
+| `violations` | SMS `400 INVALID_REQUEST`: `{ field, message }` for each refused field. |
 | `rejectedItems` | Recipients refused by a 422 `NO_DELIVERABLE_MESSAGES`. `recipient` is masked (for example `905321****67`); `index` is the key back into your own request. |
 
 Client-side codes: `NETWORK_ERROR` (no usable HTTP response: connection failure, timeout) and
 `INVALID_RESPONSE` (a response that does not match the API contract). Both set
 `mayHaveBeenProcessed` to `true` for requests other than `GET`, because the server may have acted
-before the answer was lost.
+before the answer was lost. For İYS calls a `NETWORK_ERROR` carries the `X-Request-Id` that was sent as its
+`requestId`.
 
 **Never blindly resend a batch send when `mayHaveBeenProcessed` is `true`.** Requests are not
 deduplicated: a second `send` creates a second job and your recipients get the message twice. Check
@@ -207,6 +210,21 @@ requests that are safe to repeat.
 
 Invalid arguments (for example a malformed `baseUrl` or an out-of-range `chunkSize`) throw
 `TypeError` or `RangeError` before any request is made.
+
+### Timeouts
+
+The client sets no timeout of its own. Pass a `fetch` that aborts slow requests; the abort surfaces as a
+`NETWORK_ERROR` (with `mayHaveBeenProcessed` set as described above).
+
+```ts
+import { Netgsm } from '@netgsm/sms';
+
+const netgsm = new Netgsm({
+  username: process.env.NETGSM_USERNAME!,
+  password: process.env.NETGSM_PASSWORD!,
+  fetch: (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(10_000) }),
+});
+```
 
 ## Balance
 

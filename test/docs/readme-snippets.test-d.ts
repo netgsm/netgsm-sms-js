@@ -105,6 +105,16 @@ export async function errorHandling(): Promise<void> {
   }
 }
 
+// README: Timeouts
+export function timeouts(): Netgsm {
+  const netgsm = new Netgsm({
+    username: process.env.NETGSM_USERNAME!,
+    password: process.env.NETGSM_PASSWORD!,
+    fetch: (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(10_000) }),
+  });
+  return netgsm;
+}
+
 // README: Balance
 export async function balanceSnippet(): Promise<void> {
   const netgsm = new Netgsm({ username: process.env.NETGSM_USERNAME!, password: process.env.NETGSM_PASSWORD! });

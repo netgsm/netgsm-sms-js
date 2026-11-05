@@ -34,7 +34,7 @@ There are many ways to contribute to the project:
 ## Development Environment Setup
 
 1. Fork the project
-2. Clone the repo: `git clone https://github.com/[KULLANICI_ADINIZ]/netgsm-sms-js.git`
+2. Clone the repo: `git clone https://github.com/<your-username>/netgsm-sms-js.git`
 3. Navigate to the project directory: `cd netgsm-sms-js`
 4. Install dependencies: `npm install`
 5. Optional, for running the examples: copy `.env.example` to `.env`. The defaults point at the

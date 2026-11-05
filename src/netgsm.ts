@@ -41,6 +41,8 @@ const BASE_URL_ERROR =
 function normalizeBaseUrl(raw: unknown): string {
   if (typeof raw !== 'string') throw new TypeError(BASE_URL_ERROR);
   const trimmed = raw.trim().replace(/\/+$/, '');
+  // A bare trailing '?' or '#' is dropped by URL parsing, so check the raw text.
+  if (trimmed.includes('?') || trimmed.includes('#')) throw new TypeError(BASE_URL_ERROR);
   let ok = false;
   try {
     const u = new URL(trimmed);
@@ -55,6 +57,27 @@ function normalizeBaseUrl(raw: unknown): string {
   }
   if (!ok) throw new TypeError(BASE_URL_ERROR);
   return trimmed;
+}
+
+function assertOptions(o: NetgsmOptions): void {
+  const bad = (name: string, rule: string): never => {
+    throw new TypeError(`${name} must be ${rule}`);
+  };
+  if (o.maxRetryAfterSec !== undefined && !(typeof o.maxRetryAfterSec === 'number' && Number.isFinite(o.maxRetryAfterSec) && o.maxRetryAfterSec >= 0)) {
+    bad('maxRetryAfterSec', 'a finite number >= 0');
+  }
+  if (
+    o.iysBrandCode !== undefined &&
+    !(Number.isInteger(o.iysBrandCode) && o.iysBrandCode > 0 && o.iysBrandCode <= 2147483647)
+  ) {
+    bad('iysBrandCode', 'a positive integer up to 2147483647');
+  }
+  if (o.enterpriseOtp !== undefined && typeof o.enterpriseOtp !== 'boolean') bad('enterpriseOtp', 'a boolean');
+  if (o.fetch !== undefined && typeof o.fetch !== 'function') bad('fetch', 'a function');
+  if (o.now !== undefined && typeof o.now !== 'function') bad('now', 'a function');
+  if (o.dangerouslyAllowBrowser !== undefined && typeof o.dangerouslyAllowBrowser !== 'boolean') {
+    bad('dangerouslyAllowBrowser', 'a boolean');
+  }
 }
 
 export class Netgsm {
@@ -79,6 +102,7 @@ export class Netgsm {
     if (typeof o.password !== 'string' || o.password === '') {
       throw new TypeError('password must be a non-empty string');
     }
+    assertOptions(o);
     const baseUrl = normalizeBaseUrl(o.baseUrl ?? NetgsmEnvironment.LIVE);
     const userFetch = o.fetch;
     // Always wrap: a bare fetch called as a method (this.o.fetch) throws Illegal invocation

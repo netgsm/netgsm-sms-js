@@ -40,7 +40,7 @@ describe('Netgsm facade', () => {
       expect(() => new Netgsm({ ...opts, baseUrl })).toThrow(TypeError);
     }
     expect(() => new Netgsm({ ...opts, baseUrl: 'ftp://u:pw@x.test' })).toThrow(/baseUrl/);
-    for (const baseUrl of [5, {}, 'https://x.test?a=1', 'https://x.test#h']) {
+    for (const baseUrl of [5, {}, 'https://x.test?a=1', 'https://x.test#h', 'https://x.test?', 'https://x.test/#', 'https://x.test/?']) {
       expect(() => new Netgsm({ ...opts, baseUrl: baseUrl as unknown as string })).toThrow(
         "baseUrl must be a valid http(s) URL",
       );
@@ -210,5 +210,32 @@ describe('Netgsm facade', () => {
       .catch((x: unknown) => x)) as pkg.NetgsmApiError;
     expect(e).toBeInstanceOf(pkg.NetgsmApiError);
     expect(e).toMatchObject({ api: 'identity', code: 'NETWORK_ERROR' });
+  });
+
+  it('validates option types with generic messages', () => {
+    const bad: Record<string, unknown[]> = {
+      maxRetryAfterSec: [-1, NaN, Infinity, '5', null],
+      iysBrandCode: [0, -3, 1.5, 2147483648, '12', NaN],
+      enterpriseOtp: ['true', 1, null],
+      fetch: ['x', {}, 1],
+      now: ['x', 5],
+      dangerouslyAllowBrowser: ['yes', 1],
+    };
+    for (const [key, values] of Object.entries(bad)) {
+      for (const v of values) {
+        let err: unknown;
+        try {
+          new Netgsm({ ...opts, [key]: v } as never);
+        } catch (e) {
+          err = e;
+        }
+        expect(err, `${key}=${String(v)}`).toBeInstanceOf(TypeError);
+        expect((err as Error).message).toContain(key);
+        expect((err as Error).message).not.toContain(String(v) + '!');
+      }
+    }
+    expect(
+      () => new Netgsm({ ...opts, maxRetryAfterSec: 0, iysBrandCode: 2147483647, enterpriseOtp: false }),
+    ).not.toThrow();
   });
 });
