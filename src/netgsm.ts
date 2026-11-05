@@ -1,11 +1,20 @@
 import { TokenManager } from './core/token-manager.js';
 import { sleep } from './core/retry-after.js';
 import { NetgsmEnvironment } from './environment.js';
-import { IysApi } from './iys/iys-api.js';
+import { IysApi as IysApiClass } from './iys/iys-api.js';
 import { IysTransport } from './iys/transport.js';
-import { SmsApi } from './sms/sms-api.js';
+import { SmsApi as SmsApiClass } from './sms/sms-api.js';
 import { SmsTransport } from './sms/transport.js';
 import { VERSION } from './version.js';
+
+/**
+ * Public shape of `netgsm.sms`. A mapped type over the implementation class, so the class (with its
+ * private brand) is not part of the public API: it cannot be imported or used with `instanceof`, and
+ * structural fakes are assignable.
+ */
+export type SmsApi = { [K in keyof SmsApiClass]: SmsApiClass[K] };
+/** Public shape of `netgsm.iys`; see {@link SmsApi}. */
+export type IysApi = { [K in keyof IysApiClass]: IysApiClass[K] };
 
 export interface NetgsmOptions {
   username: string;
@@ -97,10 +106,10 @@ export class Netgsm {
       userAgent: `netgsm-sms-js/${VERSION}`,
     };
     this.#baseUrl = baseUrl;
-    this.sms = new SmsApi(new SmsTransport(transportOptions), {
+    this.sms = new SmsApiClass(new SmsTransport(transportOptions), {
       enterpriseOtp: o.enterpriseOtp ?? false,
     });
-    this.iys = new IysApi(new IysTransport(transportOptions), {
+    this.iys = new IysApiClass(new IysTransport(transportOptions), {
       ...(o.iysBrandCode !== undefined ? { brandCode: o.iysBrandCode } : {}),
     });
   }
