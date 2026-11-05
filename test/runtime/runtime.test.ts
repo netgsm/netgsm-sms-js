@@ -33,4 +33,18 @@ describe('works_without_buffer', () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toContain('ESM_OK');
   });
+
+  it('1.x-style CJS program (default import, enums subpath) works unchanged', () => {
+    const r = run('./legacy-cjs-check.cjs');
+    expect(r.stderr).toBe('');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('LEGACY_CJS_OK');
+  });
+
+  it('1.x-style ESM program (default and named imports, enums subpath) works unchanged', () => {
+    const r = run('./legacy-esm-check.mjs');
+    expect(r.stderr).toBe('');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('LEGACY_ESM_OK');
+  });
 });

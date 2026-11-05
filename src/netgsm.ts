@@ -5,6 +5,26 @@ import { IysApi as IysApiClass } from './iys/iys-api.js';
 import { IysTransport } from './iys/transport.js';
 import { SmsApi as SmsApiClass } from './sms/sms-api.js';
 import { SmsTransport } from './sms/transport.js';
+import { LegacyClient } from './legacy/legacy-client.js';
+import { warnBrowserCredentials, warnDeprecated } from './legacy/deprecation.js';
+import type {
+  BalancePayload,
+  BalanceResponse,
+  CancelSmsPayload,
+  CancelSmsResponse,
+  HeaderQueryPayload,
+  HeaderQueryResponse,
+  LegacyReportResponse,
+  LegacyStatsResponse,
+  OtpSmsPayload,
+  OtpSmsResponse,
+  ReportPayload,
+  RestSmsPayload,
+  RestSmsResponse,
+  SmsInboxPayload,
+  SmsInboxResponse,
+  StatsPayload,
+} from './legacy/types.js';
 import { VERSION } from './version.js';
 
 /**
@@ -31,6 +51,11 @@ export interface NetgsmOptions {
   maxRetryAfterSec?: number;
   fetch?: typeof fetch;
   now?: () => number;
+  /**
+   * Application name sent by the legacy 1.x methods as `<appname>-sdk-js`. Has no effect on `sms` / `iys`.
+   * @deprecated since 2.0.0; only the deprecated 1.x methods use it. See MIGRATION.md.
+   */
+  appname?: string;
   /** Credentials must stay server-side; set only if you accept the risk. */
   dangerouslyAllowBrowser?: boolean;
 }
@@ -75,27 +100,31 @@ function assertOptions(o: NetgsmOptions): void {
   if (o.enterpriseOtp !== undefined && typeof o.enterpriseOtp !== 'boolean') bad('enterpriseOtp', 'a boolean');
   if (o.fetch !== undefined && typeof o.fetch !== 'function') bad('fetch', 'a function');
   if (o.now !== undefined && typeof o.now !== 'function') bad('now', 'a function');
+  if (o.appname !== undefined && typeof o.appname !== 'string') bad('appname', 'a string');
   if (o.dangerouslyAllowBrowser !== undefined && typeof o.dangerouslyAllowBrowser !== 'boolean') {
     bad('dangerouslyAllowBrowser', 'a boolean');
   }
 }
 
+function isBrowserLike(): boolean {
+  return (
+    typeof document !== 'undefined' ||
+    (typeof window !== 'undefined' && typeof (globalThis as { Deno?: unknown }).Deno === 'undefined')
+  );
+}
+
+const BROWSER_ERROR =
+  'Netgsm credentials must stay server-side: do not use this SDK in a browser. ' +
+  'Set dangerouslyAllowBrowser: true only if you accept the risk.';
+
 export class Netgsm {
-  readonly sms: SmsApi;
-  readonly iys: IysApi;
+  readonly #sms: SmsApi;
+  readonly #iys: IysApi;
   readonly #baseUrl: string;
+  readonly #legacy: LegacyClient;
+  readonly #allowBrowser: boolean;
 
   constructor(o: NetgsmOptions) {
-    if (
-      (typeof document !== 'undefined' ||
-        (typeof window !== 'undefined' && typeof (globalThis as { Deno?: unknown }).Deno === 'undefined')) &&
-      o?.dangerouslyAllowBrowser !== true
-    ) {
-      throw new Error(
-        'Netgsm credentials must stay server-side: do not use this SDK in a browser. ' +
-          'Set dangerouslyAllowBrowser: true only if you accept the risk.',
-      );
-    }
     if (!o || typeof o.username !== 'string' || o.username === '') {
       throw new TypeError('username must be a non-empty string');
     }
@@ -104,6 +133,7 @@ export class Netgsm {
     }
     assertOptions(o);
     const baseUrl = normalizeBaseUrl(o.baseUrl ?? NetgsmEnvironment.LIVE);
+    this.#allowBrowser = o.dangerouslyAllowBrowser === true;
     const userFetch = o.fetch;
     // Always wrap: a bare fetch called as a method (this.o.fetch) throws Illegal invocation
     // in browsers and Workers.
@@ -130,12 +160,81 @@ export class Netgsm {
       userAgent: `netgsm-sms-js/${VERSION}`,
     };
     this.#baseUrl = baseUrl;
-    this.sms = new SmsApiClass(new SmsTransport(transportOptions), {
+    this.#legacy = new LegacyClient({
+      username: o.username,
+      password: o.password,
+      ...(o.appname !== undefined ? { appname: o.appname } : {}),
+      fetch: fetchImpl,
+    });
+    this.#sms = new SmsApiClass(new SmsTransport(transportOptions), {
       enterpriseOtp: o.enterpriseOtp ?? false,
     });
-    this.iys = new IysApiClass(new IysTransport(transportOptions), {
+    this.#iys = new IysApiClass(new IysTransport(transportOptions), {
       ...(o.iysBrandCode !== undefined ? { brandCode: o.iysBrandCode } : {}),
     });
+  }
+
+  /** SMS API v3. Throws in a browser-like environment unless `dangerouslyAllowBrowser: true`. */
+  get sms(): SmsApi {
+    this.#assertServerSide();
+    return this.#sms;
+  }
+
+  /** İYS consent API. Throws in a browser-like environment unless `dangerouslyAllowBrowser: true`. */
+  get iys(): IysApi {
+    this.#assertServerSide();
+    return this.#iys;
+  }
+
+  #assertServerSide(): void {
+    if (!this.#allowBrowser && isBrowserLike()) throw new Error(BROWSER_ERROR);
+  }
+
+  /** Warns (once per method) that a 1.x method is deprecated; in browsers also that credentials are exposed. */
+  #legacyUse(method: string): LegacyClient {
+    warnDeprecated(method);
+    if (!this.#allowBrowser && isBrowserLike()) warnBrowserCredentials();
+    return this.#legacy;
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.send; see MIGRATION.md. Removed in 3.0.0. */
+  sendRestSms(payload: RestSmsPayload): Promise<RestSmsResponse> {
+    return this.#legacyUse('sendRestSms').sendRestSms(payload);
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.sendOtp; see MIGRATION.md. Removed in 3.0.0. */
+  sendOtpSms(payload: OtpSmsPayload): Promise<OtpSmsResponse> {
+    return this.#legacyUse('sendOtpSms').sendOtpSms(payload);
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.cancel; see MIGRATION.md. Removed in 3.0.0. */
+  cancelSms(payload: CancelSmsPayload): Promise<CancelSmsResponse> {
+    return this.#legacyUse('cancelSms').cancelSms(payload);
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.getReport; see MIGRATION.md. Removed in 3.0.0. */
+  getReport(payload: ReportPayload): Promise<LegacyReportResponse> {
+    return this.#legacyUse('getReport').getReport(payload);
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.getStats; see MIGRATION.md. Removed in 3.0.0. */
+  getStats(payload: StatsPayload): Promise<LegacyStatsResponse> {
+    return this.#legacyUse('getStats').getStats(payload);
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.listSenders; see MIGRATION.md. Removed in 3.0.0. */
+  getHeaders(payload?: HeaderQueryPayload): Promise<HeaderQueryResponse> {
+    return this.#legacyUse('getHeaders').getHeaders(payload);
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.getInbox; see MIGRATION.md. Removed in 3.0.0. */
+  getInbox(payload?: SmsInboxPayload): Promise<SmsInboxResponse> {
+    return this.#legacyUse('getInbox').getInbox(payload);
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.getBalance; see MIGRATION.md. Removed in 3.0.0. */
+  checkBalance(payload: BalancePayload): Promise<BalanceResponse> {
+    return this.#legacyUse('checkBalance').checkBalance(payload);
   }
 
   toJSON(): { baseUrl: string } {

@@ -137,11 +137,15 @@ describe('Netgsm facade', () => {
   it('refuses window-only and document-only environments unless allowed', () => {
     const g = globalThis as { window?: unknown; document?: unknown };
     g.window = {};
-    expect(() => new Netgsm(opts)).toThrow(/server/i);
-    expect(() => new Netgsm({ ...opts, dangerouslyAllowBrowser: true })).not.toThrow();
+    const guarded = new Netgsm(opts);
+    expect(() => guarded.sms).toThrow(/server/i);
+    expect(() => guarded.iys).toThrow(/server/i);
+    const allowed = new Netgsm({ ...opts, dangerouslyAllowBrowser: true });
+    expect(allowed.sms).toBeDefined();
+    expect(allowed.iys).toBeDefined();
     delete g.window;
     g.document = {};
-    expect(() => new Netgsm(opts)).toThrow(/server/i);
+    expect(() => new Netgsm(opts).sms).toThrow(/server/i);
   });
 
   it('allows window when running on Deno', () => {
@@ -149,7 +153,7 @@ describe('Netgsm facade', () => {
     g.window = {};
     g.Deno = {};
     try {
-      expect(() => new Netgsm(opts)).not.toThrow();
+      expect(new Netgsm(opts).sms).toBeDefined();
     } finally {
       delete g.Deno;
     }

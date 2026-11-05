@@ -15,6 +15,16 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
+    },
+    "./enums": {
+      "import": {
+        "types": "./dist/enums.d.mts",
+        "default": "./dist/enums.mjs"
+      },
+      "require": {
+        "types": "./dist/enums.d.ts",
+        "default": "./dist/enums.js"
+      }
     }
   },
   "sideEffects": false,

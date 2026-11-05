@@ -14,6 +14,10 @@ describe('package', () => {
       import: { types: './dist/index.d.mts', default: './dist/index.mjs' },
       require: { types: './dist/index.d.ts', default: './dist/index.js' },
     });
+    expect(pkg.exports['./enums']).toStrictEqual({
+      import: { types: './dist/enums.d.mts', default: './dist/enums.mjs' },
+      require: { types: './dist/enums.d.ts', default: './dist/enums.js' },
+    });
     expect(pkg.engines.node).toBe('>=20');
     expect(pkg.dependencies).toBeUndefined();
     expect(pkg.sideEffects).toBe(false);
