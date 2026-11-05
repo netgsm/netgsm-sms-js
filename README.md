@@ -190,7 +190,7 @@ try {
 | `retryable` | Whether repeating the same request later can succeed. |
 | `retryAfterSec` | The `Retry-After` value, or `null`. |
 | `mayHaveBeenProcessed` | `true` when the API may have accepted the request despite the failure. |
-| `rejectedItems` | Recipients refused by a 422 `NO_DELIVERABLE_MESSAGES`. |
+| `rejectedItems` | Recipients refused by a 422 `NO_DELIVERABLE_MESSAGES`. `recipient` is masked (for example `905321****67`); `index` is the key back into your own request. |
 
 Client-side codes: `NETWORK_ERROR` (no usable HTTP response: connection failure, timeout) and
 `INVALID_RESPONSE` (a response that does not match the API contract). Both set

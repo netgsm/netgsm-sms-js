@@ -1,5 +1,5 @@
 import { NetgsmApiError } from '../core/errors.js';
-import { parseRetryAfter } from '../core/retry-after.js';
+import { jitterMs, parseRetryAfter } from '../core/retry-after.js';
 import type { TokenManager } from '../core/token-manager.js';
 
 export interface IysTransportOptions {
@@ -72,7 +72,7 @@ export class IysTransport {
           body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
         });
       } catch (e) {
-        // Never retried; only the error name is reported (the message may contain the URL).
+        // Not retried here (the caller decides, see retryable); only the error name is reported (the message may contain the URL).
         const name = e instanceof Error ? e.name : 'unknown';
         throw new NetgsmApiError({
           api: 'iys',
@@ -82,7 +82,7 @@ export class IysTransport {
           detail: `network error: ${name}`,
           requestId,
           retryAfterSec: null,
-          retryable: method === 'GET',
+          retryable: repeatable,
           mayHaveBeenProcessed: method !== 'GET',
         });
       }
@@ -165,7 +165,7 @@ export class IysTransport {
         const waitSec = retryAfterSec ?? BACKOFF_SEC[retries]!;
         if (waitSec > maxRetryAfterSec) throw fail(true);
         retries++;
-        await sleep(waitSec * 1000);
+        await sleep(waitSec * 1000 + jitterMs());
         continue;
       }
 

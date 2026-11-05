@@ -1,4 +1,5 @@
-import { NetgsmApiError } from '../core/errors.js';
+import { NetgsmApiError, type RejectedItem } from '../core/errors.js';
+import { maskRecipient } from '../core/mask.js';
 import { readJson } from '../core/read-json.js';
 import { jitterMs, parseRetryAfter } from '../core/retry-after.js';
 import type { TokenManager } from '../core/token-manager.js';
@@ -43,6 +44,15 @@ function hasPerJobLimit(path: string, query: Record<string, QueryValue>): boolea
   if (path !== '/report') return false;
   const v = query.jobIds;
   return Array.isArray(v) ? v.length > 0 : v !== undefined && v !== '';
+}
+
+/** Recipients are masked so the error is safe to log; `index` maps back to the caller's request. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function maskRejected(items: any[]): RejectedItem[] {
+  return items.map((i) => ({
+    ...i,
+    recipient: typeof i?.recipient === 'string' ? maskRecipient(i.recipient) : null,
+  }));
 }
 
 function serializeQuery(query: Record<string, QueryValue>): string {
@@ -98,7 +108,7 @@ export class SmsTransport {
           body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
         });
       } catch (e) {
-        // Never retried; only the error name is reported (the message may contain the URL).
+        // Not retried here (the caller decides, see retryable); only the error name is reported (the message may contain the URL).
         const name = e instanceof Error ? e.name : 'unknown';
         throw new NetgsmApiError({
           api: 'sms',
@@ -108,7 +118,7 @@ export class SmsTransport {
           detail: `network error: ${name}`,
           requestId: null,
           retryAfterSec: null,
-          retryable: !isBatchSend(method, path),
+          retryable: repeatable,
           mayHaveBeenProcessed: method !== 'GET',
         });
       }
@@ -156,7 +166,7 @@ export class SmsTransport {
           retryAfterSec,
           retryable,
           mayHaveBeenProcessed,
-          rejectedItems: Array.isArray(p.rejectedItems) ? p.rejectedItems : undefined,
+          rejectedItems: Array.isArray(p.rejectedItems) ? maskRejected(p.rejectedItems) : undefined,
         });
 
       // 401: token invalid. Re-login once and repeat once.

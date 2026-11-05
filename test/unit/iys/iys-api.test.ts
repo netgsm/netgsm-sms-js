@@ -202,7 +202,9 @@ describe('IysTransport', () => {
     const busy = { status: 503, body: { success: false, errorCode: 141, message: 'busy' } };
     const { api, sleeps, calls } = setup([busy, busy, ok({ uid: 'w' })]);
     await api.saveWebhook('https://h.example');
-    expect(sleeps).toEqual([1000, 2000]);
+    expect(sleeps).toHaveLength(2);
+    expect(sleeps[0]! >= 1000 && sleeps[0]! < 1250).toBe(true);
+    expect(sleeps[1]! >= 2000 && sleeps[1]! < 2250).toBe(true);
     expect(calls()).toHaveLength(3);
   });
 
@@ -218,7 +220,8 @@ describe('IysTransport', () => {
     expect(r.sleeps).toEqual([]);
     const r2 = setup([limited('5'), ok({ uid: 'w' })]);
     await r2.api.saveWebhook('https://h.example');
-    expect(r2.sleeps).toEqual([5000]);
+    expect(r2.sleeps).toHaveLength(1);
+    expect(r2.sleeps[0]! >= 5000 && r2.sleeps[0]! < 5250).toBe(true);
   });
 
   it('gives_up_after_three_retries', async () => {
@@ -285,6 +288,12 @@ describe('IysTransport', () => {
     const { transport } = build([tok(1)]);
     const e = await fails(transport.request('GET', '/consents'));
     expect(e).toMatchObject({ code: 'NETWORK_ERROR', mayHaveBeenProcessed: false, retryable: true });
+  });
+
+  it('network_error_on_webhooks_is_retryable', async () => {
+    const { transport } = build([tok(1)]);
+    const e = await fails(new IysApi(transport, { brandCode: 1 }).saveWebhook('https://h.example'));
+    expect(e).toMatchObject({ code: 'NETWORK_ERROR', retryable: true, mayHaveBeenProcessed: true });
   });
 
   it('empty_2xx_is_invalid_response', async () => {

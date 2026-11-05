@@ -1,3 +1,4 @@
+import { inspect } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { NetgsmApiError } from '../../../src/core/errors.js';
 import { TokenManager } from '../../../src/core/token-manager.js';
@@ -303,5 +304,46 @@ describe('SmsTransport', () => {
     expect(e2.mayHaveBeenProcessed).toBe(false);
     expect(e2.retryable).toBe(true);
     expect(b.count()).toBe(1);
+  });
+
+  it('network_error_otp_not_retryable_cancel_retryable', async () => {
+    const mk = () => {
+      const tokens = new TokenManager({
+        baseUrl: BASE, username: 'u', password: 'p', scope: 'sms',
+        fetch: fakeFetch([tok(1)]).fetch, now: () => 0,
+      });
+      return new SmsTransport({
+        baseUrl: BASE, tokens,
+        fetch: (() => Promise.reject(new TypeError('ECONNRESET'))) as typeof fetch,
+        now: () => 0, sleep: () => Promise.resolve(), maxRetryAfterSec: 60, userAgent: 'ua',
+      });
+    };
+    const otp = await fails(mk().request('POST', '/send/otp', { body: {} }));
+    expect(otp).toMatchObject({ code: 'NETWORK_ERROR', retryable: false, mayHaveBeenProcessed: true });
+    const cancel = await fails(mk().request('POST', '/cancel', { body: {} }));
+    expect(cancel).toMatchObject({ retryable: true, mayHaveBeenProcessed: true });
+  });
+
+  it('422_masks_recipients_in_error_output', async () => {
+    const { transport } = setup([
+      {
+        status: 422,
+        body: {
+          code: 'NO_DELIVERABLE_MESSAGES',
+          message: 'all 2 messages rejected',
+          requestId: 'r1',
+          rejectedItems: [
+            { index: 0, recipient: '905321234567', reason: 'INVALID_RECIPIENT' },
+            { index: 1, recipient: null, reason: 'MISSING' },
+          ],
+        },
+      },
+    ]);
+    const e = await fails(transport.request('POST', '/send', { body: {} }));
+    expect(inspect(e)).not.toContain('905321234567');
+    expect(JSON.stringify(e)).not.toContain('905321234567');
+    expect(JSON.stringify(e)).toContain('905321****67');
+    expect(e.rejectedItems![0]).toEqual({ index: 0, recipient: '905321****67', reason: 'INVALID_RECIPIENT' });
+    expect(e.rejectedItems![1]!.recipient).toBeNull();
   });
 });
