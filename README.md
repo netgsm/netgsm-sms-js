@@ -32,7 +32,11 @@ console.log(res.code, res.jobid);
 ```
 
 - Each 1.x method prints a one-time `DeprecationWarning` that names its replacement.
-- Silence the warnings with `node --no-deprecation app.js` or `process.noDeprecation = true`.
+- Silence the warnings with `node --no-deprecation app.js` or `process.noDeprecation = true`. Without
+  `process.emitWarning` (browsers) the warning goes to `console.warn` once and cannot be silenced;
+  `dangerouslyAllowBrowser` silences only the credentials warning.
+- The deprecated methods always call the live legacy API. They reject without a request when
+  `baseUrl` points to the sandbox or the mock.
 - The deprecated methods and the `appname` option are removed in 3.0.0.
 - To move to the new API, use `netgsm.sms` and `netgsm.iys`; [MIGRATION.md](./MIGRATION.md) maps
   every 1.x method and field.
@@ -81,7 +85,7 @@ request, cached, refreshed before it expires and renewed once on a `401`; you ne
 | Option | Default | Meaning |
 |---|---|---|
 | `username`, `password` | required | Your Netgsm API credentials. |
-| `baseUrl` | `NetgsmEnvironment.LIVE` | API address; a trailing `/` is trimmed. See [Environments](#environments). |
+| `baseUrl` | `NetgsmEnvironment.LIVE` | API address for `sms` / `iys`; a trailing `/` is trimmed. The deprecated 1.x methods always use the live legacy API and are disabled (reject) when this is not LIVE. See [Environments](#environments). |
 | `scope` | `'sms'` | Token scope. |
 | `enterpriseOtp` | `false` | Sends `x-client: enterprise` on `sms.sendOtp` (enterprise OTP accounts only). |
 | `iysBrandCode` | none | Default İYS brand code for `iys.*` calls. |
@@ -109,6 +113,10 @@ const sandbox = new Netgsm({
   baseUrl: NetgsmEnvironment.SANDBOX, // or 'http://127.0.0.1:4010' for the local mock
 });
 ```
+
+The sandbox and the mock apply only to `netgsm.sms` and `netgsm.iys`. The deprecated 1.x methods always
+call the live legacy API (`api.netgsm.com.tr`) and have no sandbox or mock, so they reject without
+making a request when `baseUrl` points to either; use `netgsm.sms.*` there.
 
 The local mock is part of the [Netgsm agent skills](https://github.com/netgsm/skills) and is also
 vendored in this repository: `node test/fixtures/netgsm-sms-mock.mjs --port 4010`. Its public test
@@ -182,8 +190,9 @@ appear. For production, register a [report webhook](#webhooks) instead of pollin
 
 ## Error handling
 
-Every failed API call rejects with a `NetgsmApiError`. It never contains credentials, tokens or
-recipient numbers, so it is safe to log.
+Every failed `sms.*` / `iys.*` call rejects with a `NetgsmApiError`. It never contains credentials,
+tokens or recipient numbers, so it is safe to log. The deprecated 1.x methods keep their 1.x
+rejections (plain objects `{ status, code, description }`).
 
 ```ts
 import { Netgsm, NetgsmApiError } from '@netgsm/sms';
