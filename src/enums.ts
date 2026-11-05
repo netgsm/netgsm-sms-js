@@ -43,6 +43,10 @@ export enum SmsStatus {
 export enum SendSmsErrorCode {
   /** Operation successful */
   SUCCESS = "00",
+  /** Accepted; the start date was invalid and the system date was used instead */
+  START_DATE_CORRECTED = "01",
+  /** Accepted; the stop date was invalid and a system date was used instead */
+  STOP_DATE_CORRECTED = "02",
   /** Could not be sent due to a problem in the message text or exceeded the standard maximum message character count */
   MESSAGE_TEXT_ERROR = "20",
   /** Invalid username, password or no API access. If IP restriction exists, request may have been made from an unauthorized IP */
@@ -155,6 +159,8 @@ export enum StatsErrorCode {
   INVALID_AUTH = "30",
   /** Invalid query. One of the parameters is incorrect or a required field is missing */
   PARAMETER_ERROR = "70",
+  /** The same Job ID was queried too recently */
+  RATE_LIMIT_EXCEEDED = "80",
   /** Undefined error */
   UNDEFINED_ERROR = "5000",
 }

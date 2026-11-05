@@ -10,6 +10,7 @@ import {
   ReportErrorCode,
   InboxErrorCode,
   BalanceErrorCode,
+  StatsErrorCode,
 } from "../../src/enums";
 import Netgsm from "../../src/netgsm";
 
@@ -143,6 +144,30 @@ describe("Netgsm Unit Tests", () => {
       await expect(netgsm.sendRestSms(validPayload)).rejects.toThrow("Network error");
     });
 
+    it.each([SendSmsErrorCode.START_DATE_CORRECTED, SendSmsErrorCode.STOP_DATE_CORRECTED])(
+      "should resolve code %s, which Netgsm accepts after correcting a date",
+      async (code) => {
+        fetchMock.mockResponseOnce(JSON.stringify({ code, jobid: "12345", description: "queued" }));
+
+        await expect(netgsm.sendRestSms(validPayload)).resolves.toEqual({
+          code,
+          jobid: "12345",
+          description: "queued",
+        });
+      }
+    );
+
+    it("should still reject a 200 response without a code", async () => {
+      fetchMock.mockResponseOnce(JSON.stringify({ jobid: null, description: "No code" }));
+
+      await expect(netgsm.sendRestSms(validPayload)).rejects.toEqual({
+        status: 406,
+        code: SendSmsErrorCode.UNDEFINED_ERROR,
+        jobid: null,
+        description: "No code",
+      });
+    });
+
     it("should normalize unknown error codes to 5000", async () => {
       fetchMock.mockResponseOnce(
         JSON.stringify({
@@ -188,6 +213,56 @@ describe("Netgsm Unit Tests", () => {
         code: SendSmsErrorCode.UNDEFINED_ERROR, // Should be normalized to UNDEFINED_ERROR
         jobid: null,
         description: "Error without code",
+      });
+    });
+  });
+
+  describe("getStats", () => {
+    const stats = [
+      {
+        status: "successful",
+        totalMessageLength: 1,
+        totalSms: 1,
+        chargeStatement: "1.0 unit(s) from: ",
+        statement: "charged",
+        domestic: true,
+      },
+    ];
+
+    it("should resolve a successful response, which carries no code", async () => {
+      fetchMock.mockResponseOnce(JSON.stringify({ stats, description: "success" }));
+
+      await expect(netgsm.getStats({ jobid: "12345" })).resolves.toEqual({
+        code: StatsErrorCode.SUCCESS,
+        stats,
+        description: "success",
+      });
+    });
+
+    it("should reject a repeated query with code 80", async () => {
+      fetchMock.mockResponseOnce(
+        JSON.stringify({ stats: [], code: "80", description: "Job ID has been queried recently." }),
+        { status: 406 }
+      );
+
+      await expect(netgsm.getStats({ jobid: "12345" })).rejects.toEqual({
+        status: 406,
+        code: StatsErrorCode.RATE_LIMIT_EXCEEDED,
+        stats: [],
+        description: "Job ID has been queried recently.",
+      });
+    });
+
+    it("should reject a 406 response without a code", async () => {
+      fetchMock.mockResponseOnce(JSON.stringify({ stats: [], description: "error" }), {
+        status: 406,
+      });
+
+      await expect(netgsm.getStats({ jobid: "12345" })).rejects.toEqual({
+        status: 406,
+        code: StatsErrorCode.UNDEFINED_ERROR,
+        stats: [],
+        description: "error",
       });
     });
   });
