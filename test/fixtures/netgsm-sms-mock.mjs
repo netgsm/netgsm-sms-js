@@ -1,4 +1,4 @@
-// Source: github.com/netgsm/skills @ 836760b (plugins/sms-skills/skills/netgsm-sms/scripts/netgsm-sms-mock.mjs), MIT License, Copyright (c) 2026 Netgsm
+// Source: github.com/netgsm/skills @ 79a5ca3 (plugins/sms-skills/skills/netgsm-sms/scripts/netgsm-sms-mock.mjs), MIT License, Copyright (c) 2026 Netgsm
 // Netgsm SMS API v3 yerel mock'u — kaynak: github.com/netgsm/skills
 // Bu dosya packages/sms-mock/src/cli.mjs dosyasından `npm run build` ile üretilir; elle değiştirmeyin.
 import { createRequire as __netgsmCreateRequire } from 'node:module';
