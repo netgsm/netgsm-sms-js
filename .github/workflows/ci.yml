@@ -1,54 +1,73 @@
-name: Node.js CI
+name: CI
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
-  actions: read
-  security-events: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:mock
+      - run: npm run build
+      - run: npm pack --dry-run
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm install
-    - run: npm run lint
-    - run: npm run build
-    - run: npm run test:unit
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: dist-${{ matrix.node-version }}
-        path: dist/
-        
-  security:
+  runtimes:
     runs-on: ubuntu-latest
-    needs: build-and-test
+    timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-    - run: npm install
-    - name: Run security audit
-      run: npm audit --production || true 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: javascript
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3       
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.x
+      - run: npm ci
+      - run: npm run build
+      - name: Bun smoke against the vendored mock
+        run: |
+          node test/fixtures/netgsm-sms-mock.mjs --port 4010 --quiet &
+          MOCK_PID=$!
+          trap 'kill $MOCK_PID 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 30); do
+            if ! kill -0 "$MOCK_PID" 2>/dev/null; then
+              echo "Netgsm mock process exited before becoming ready" >&2
+              exit 1
+            fi
+            if curl -s -o /dev/null http://127.0.0.1:4010/__mock/scenario; then READY=1; break; fi
+            sleep 1
+          done
+          if [ "$READY" != "1" ]; then
+            echo "Netgsm mock did not answer on port 4010 within 30s" >&2
+            exit 1
+          fi
+          NETGSM_MOCK_URL=http://127.0.0.1:4010 bun test/runtime/bun-smoke.mjs

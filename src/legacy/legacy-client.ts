@@ -1,0 +1,371 @@
+/**
+ * @module Netgsm
+ * @description Netgsm SMS API client implementation
+ */
+
+import {
+  SendSmsErrorCode,
+  SendOtpSmsErrorCode,
+  CancelErrorCode,
+  ReportErrorCode,
+  StatsErrorCode,
+  MsgHeaderErrorCode,
+  InboxErrorCode,
+} from "./enums.js";
+import {
+  ReportPayload,
+  LegacyReportResponse,
+  HeaderQueryResponse,
+  HeaderQueryPayload,
+  BalanceResponse,
+  BalancePayload,
+  CancelSmsPayload,
+  CancelSmsResponse,
+  SmsInboxResponse,
+  SmsInboxPayload,
+  RestSmsPayload,
+  RestSmsResponse,
+  OtpSmsPayload,
+  OtpSmsResponse,
+  StatsPayload,
+  LegacyStatsResponse,
+} from "./types.js";
+
+/**
+ * Validates if a code exists in an enum, returns "5000" if not found
+ * @param code - The code to validate
+ * @param enumObj - The enum object to check against (optional)
+ * @returns Valid code or "5000" for undefined errors
+ */
+function normalizeErrorCode(code: string | undefined | null, enumObj?: object): string {
+  if (!code || typeof code !== "string") {
+    return "5000";
+  }
+
+  // If enum provided, check if code exists in enum values
+  if (enumObj && !Object.values(enumObj).includes(code)) {
+    return "5000";
+  }
+
+  return code;
+}
+
+/**
+ * Legacy 1.x client. Talks to the legacy Netgsm API exactly like 1.1.x did; the credentials live in
+ * #private fields only and requests go through the facade's wrapped fetch.
+ */
+export class LegacyClient {
+  readonly #baseURL = "https://api.netgsm.com.tr";
+  readonly #username: string;
+  readonly #password: string;
+  readonly #authorization: string;
+  readonly #sdkAppName?: string;
+  readonly #fetch: typeof fetch;
+
+  constructor(options: { username: string; password: string; appname?: string; fetch: typeof fetch }) {
+    this.#username = options.username;
+    this.#password = options.password;
+    this.#fetch = options.fetch;
+    this.#authorization = `Basic ${this.#generateAuthToken(options.username, options.password)}`;
+
+    // When an appname is given, build the SDK-specific format
+    if (options.appname) {
+      this.#sdkAppName = `${options.appname}-sdk-js`;
+    }
+  }
+
+  get #headers(): HeadersInit {
+    return { "Content-Type": "application/json", Authorization: this.#authorization };
+  }
+
+  /**
+   * Generate Base64 encoded authorization token
+   *
+   * The credentials are encoded as UTF-8 before btoa, so the token matches what the
+   * Node.js byte-buffer API produced, and no runtime needs it or a window object.
+   */
+  #generateAuthToken(username: string, password: string): string {
+    const bytes = new TextEncoder().encode(`${username}:${password}`);
+    let binary = "";
+    bytes.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
+  }
+
+  /**
+   * Send SMS using REST v2 API
+   * @param {RestSmsPayload} payload - JSON payload for sending SMS.
+   * @returns {Promise<RestSmsResponse>} - The API response.
+   */
+  async sendRestSms(payload: RestSmsPayload): Promise<RestSmsResponse> {
+    const response = await this.#fetch(`${this.#baseURL}/sms/rest/v2/send`, {
+      method: "POST",
+      headers: this.#headers,
+      body: JSON.stringify({
+        msgheader: payload.msgheader,
+        ...(payload?.appname
+          ? { appname: payload.appname }
+          : this.#sdkAppName
+            ? { appname: this.#sdkAppName }
+            : {}),
+        ...(payload?.iysfilter && { iysfilter: payload.iysfilter }),
+        ...(payload?.partnercode && { partnercode: payload.partnercode }),
+        ...(payload?.encoding && { encoding: payload.encoding }),
+        messages: payload.messages,
+        ...(payload?.startdate && { startdate: payload.startdate }),
+        ...(payload?.stopdate && { stopdate: payload.stopdate }),
+      }),
+    });
+
+    return await this.#handleResponse<RestSmsResponse>(response, SendSmsErrorCode, {
+      successCodes: [
+        SendSmsErrorCode.SUCCESS,
+        SendSmsErrorCode.START_DATE_CORRECTED,
+        SendSmsErrorCode.STOP_DATE_CORRECTED,
+      ],
+    });
+  }
+
+  /**
+   * Send OTP SMS using REST v2 API
+   * @param {OtpSmsPayload} payload - JSON payload for sending OTP SMS.
+   * @returns {Promise<OtpSmsResponse>} - The API response.
+   */
+  async sendOtpSms(payload: OtpSmsPayload): Promise<OtpSmsResponse> {
+    const response = await this.#fetch(`${this.#baseURL}/sms/rest/v2/otp`, {
+      method: "POST",
+      headers: this.#headers,
+      body: JSON.stringify({
+        msgheader: payload.msgheader,
+        ...(payload?.appname
+          ? { appname: payload.appname }
+          : this.#sdkAppName
+            ? { appname: this.#sdkAppName }
+            : {}),
+        msg: payload.msg,
+        no: payload.no,
+      }),
+    });
+
+    return await this.#handleResponse<OtpSmsResponse>(response, SendOtpSmsErrorCode);
+  }
+
+  /**
+   * Cancel a scheduled SMS
+   * @param {CancelSmsPayload} payload - JSON payload for cancelling SMS.
+   * @returns {Promise<CancelSmsResponse>} - The API response.
+   */
+  async cancelSms(payload: CancelSmsPayload): Promise<CancelSmsResponse> {
+    const response = await this.#fetch(`${this.#baseURL}/sms/rest/v2/cancel`, {
+      method: "POST",
+      headers: this.#headers,
+      body: JSON.stringify({
+        jobid: payload.jobid,
+        ...(payload?.appname
+          ? { appname: payload.appname }
+          : this.#sdkAppName
+            ? { appname: this.#sdkAppName }
+            : {}),
+      }),
+    });
+
+    return await this.#handleResponse<CancelSmsResponse>(response, CancelErrorCode);
+  }
+
+  /**
+   * Get SMS report using REST v2 API
+   * @param {ReportPayload} payload - JSON payload for fetching SMS report.
+   * @returns {Promise<LegacyReportResponse>} - The API response containing report details.
+   */
+  async getReport(payload: ReportPayload): Promise<LegacyReportResponse> {
+    const response = await this.#fetch(`${this.#baseURL}/sms/rest/v2/report`, {
+      method: "POST",
+      headers: this.#headers,
+      body: JSON.stringify({
+        jobids: payload.bulkIds,
+        startdate: payload.startdate,
+        stopdate: payload.stopdate,
+        appname: payload?.appname || this.#sdkAppName,
+        pagenumber: payload?.pageNumber,
+        pagesize: payload?.pageSize,
+      }),
+    });
+
+    return await this.#handleResponse<LegacyReportResponse>(response, ReportErrorCode);
+  }
+
+  /**
+   * Get SMS statistics using REST v2 API
+   * @param {StatsPayload} payload - JSON payload for fetching SMS report.
+   * @returns {Promise<LegacyStatsResponse>} - The API response containing report details.
+   */
+  async getStats(payload: StatsPayload): Promise<LegacyStatsResponse> {
+    const response = await this.#fetch(`${this.#baseURL}/sms/rest/v2/stats`, {
+      method: "POST",
+      headers: this.#headers,
+      body: JSON.stringify({
+        jobid: payload.jobid,
+        sendDate: payload?.senddate,
+        appname: payload?.appname || this.#sdkAppName,
+      }),
+    });
+
+    return await this.#handleResponse<LegacyStatsResponse>(response, StatsErrorCode, {
+      successWithoutCode: true,
+    });
+  }
+
+  /**
+   * Get registered sender IDs/headers using REST v2 API
+   * @param {HeaderQueryPayload} payload - Optional payload for the query
+   * @returns {Promise<HeaderQueryResponse>} - The API response containing header details.
+   */
+  async getHeaders(payload?: HeaderQueryPayload): Promise<HeaderQueryResponse> {
+    const url = new URL(`${this.#baseURL}/sms/rest/v2/msgheader`);
+
+    if (payload?.appname || this.#sdkAppName) {
+      url.searchParams.append("appname", payload?.appname || this.#sdkAppName || "");
+    }
+
+    const response = await this.#fetch(url.toString(), {
+      method: "GET",
+      headers: this.#headers,
+    });
+
+    return await this.#handleResponse<HeaderQueryResponse>(response, MsgHeaderErrorCode);
+  }
+
+  /**
+   * Get inbox messages
+   * @param {SmsInboxPayload} payload - Optional payload for the query
+   * @returns {Promise<SmsInboxResponse>} - The API response containing inbox messages.
+   */
+  async getInbox(payload?: SmsInboxPayload): Promise<SmsInboxResponse> {
+    const url = new URL(`${this.#baseURL}/sms/rest/v2/inbox`);
+
+    if (payload?.appname || this.#sdkAppName) {
+      url.searchParams.append("appname", payload?.appname || this.#sdkAppName || "");
+    }
+
+    if (payload?.startdate) {
+      url.searchParams.append("startdate", payload.startdate);
+    }
+
+    if (payload?.stopdate) {
+      url.searchParams.append("stopdate", payload.stopdate);
+    }
+
+    const response = await this.#fetch(url.toString(), {
+      method: "GET",
+      headers: this.#headers,
+    });
+
+    return await this.#handleResponse<SmsInboxResponse>(response, InboxErrorCode);
+  }
+
+  /**
+   * Checks balance/package information
+   * @param payload Balance query parameters
+   * @returns Balance information
+   */
+  async checkBalance(payload: BalancePayload): Promise<BalanceResponse> {
+    const url = `${this.#baseURL}/balance`;
+
+    const response = await this.#fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usercode: this.#username,
+        password: this.#password,
+        stip: payload.stip,
+        ...(payload?.appkey && { appkey: payload.appkey }),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.status !== 200) {
+      throw {
+        status: response.status,
+        ...data,
+      };
+    }
+
+    return data;
+  }
+
+  /**
+   * Parse a response and reject unless its code is a success code
+   * @template T
+   * @param {Response} response - The fetch response.
+   * @param {object} errorCodeEnum - The endpoint's code enum, used to normalize unknown codes.
+   * @param {object} options - How the response is read.
+   * @param {string[]} options.successCodes - Codes that mean the request was accepted, "00" when omitted.
+   * @param {boolean} options.successWithoutCode - Whether a 200 response without a code is a success,
+   * which is how /sms/rest/v2/stats answers a successful query.
+   * @returns {Promise<T>} - The parsed response.
+   */
+  async #handleResponse<T>(
+    response: Response,
+    errorCodeEnum?: object,
+    {
+      successCodes = ["00"],
+      successWithoutCode = false,
+    }: { successCodes?: string[]; successWithoutCode?: boolean } = {}
+  ): Promise<T> {
+    // Try to parse JSON response
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      // If JSON parsing fails, throw HTTP error
+      throw {
+        status: response.status,
+        code: "PARSE_ERROR",
+        description: `Failed to parse JSON response: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+
+    // Check if response is success status
+    if (response.status === 200 || response.status === 406) {
+      // Validate data structure
+      if (typeof data !== "object" || data === null) {
+        throw {
+          status: response.status,
+          code: "INVALID_RESPONSE",
+          description: "Response is not a valid object",
+        };
+      }
+
+      // A successful stats query carries no code, so it is reported as "00"
+      if (successWithoutCode && response.status === 200 && data.code === undefined) {
+        data.code = "00";
+      }
+
+      // Normalize error code - if code is missing or not in enum, set to "5000"
+      data.code = normalizeErrorCode(data.code, errorCodeEnum);
+
+      // Check if API returned an error code
+      if (!successCodes.includes(data.code)) {
+        throw {
+          status: response.status !== 200 ? response.status : 406,
+          ...data,
+        };
+      }
+
+      // Success case
+      return data as T;
+    }
+
+    // HTTP error cases (non-200/406 status codes)
+    throw {
+      status: response.status,
+      code: normalizeErrorCode(data?.code, errorCodeEnum) || response.statusText,
+      description: data?.description || "HTTP Error",
+    };
+  }
+}
+

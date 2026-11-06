@@ -1,0 +1,193 @@
+# Upgrading from 1.x to 2.0
+
+Upgrading is non-breaking for 1.x JavaScript code. `npm install @netgsm/sms@2` and your existing
+calls (`sendRestSms`, `sendOtpSms`, `cancelSms`, `getReport`, `getStats`, `getHeaders`, `getInbox`,
+`checkBalance`) keep working: same arguments, same requests to the legacy API (`api.netgsm.com.tr`),
+same response and error shapes. They are deprecated, print a one-time `DeprecationWarning` naming
+the replacement, and are removed in 3.0.0. The deprecated methods stay in every 2.x release and are
+removed in 3.0.0; no retirement date for the legacy API itself is announced.
+
+## What can break
+
+1. Node.js 20 or later is required (`engines`). npm warns on older Node; yarn 1 or npm with
+   engine-strict refuse to install. 1.x supported Node 14.
+2. TypeScript only: `ReportResponse` and `StatsResponse` now mean the v3 types. Use
+   `LegacyReportResponse` / `LegacyStatsResponse` for the 1.x shapes.
+3. A missing or invalid `username`/`password`, or a 2.x option name (`baseUrl`, `fetch`, `now`,
+   `maxRetryAfterSec`, ...) present in your config with an invalid value, now throws a `TypeError`
+   (still an `Error`). Numeric credentials are still accepted.
+4. With `node --throw-deprecation`, the first call to each deprecated method crashes the process:
+   Node throws the DeprecationWarning as an uncaught exception on the next tick, after the request
+   has been started, so it cannot be caught around the call. Set `process.noDeprecation = true` (it
+   takes precedence) or drop the flag.
+
+Nothing else in the documented 1.x API changes. The 1.x enums are still exported (also from
+`@netgsm/sms/enums`), and the `appname` option still works for the legacy methods. Undocumented
+instance internals (`config`, `headers`, `baseURL`) are gone, and `JSON.stringify(netgsm)` now
+returns `{ baseUrl }`.
+
+If you add the new `baseUrl` option while upgrading, note that the deprecated methods always call
+the live legacy API (`api.netgsm.com.tr`) and have no sandbox or mock. They reject without making a
+request when `baseUrl` points to anything other than `NetgsmEnvironment.LIVE`, so use
+`netgsm.sms` / `netgsm.iys` against the sandbox or the mock.
+
+## Silencing the warnings
+
+```bash
+node --no-deprecation app.js
+```
+
+or `process.noDeprecation = true` before the first call. In a browser the legacy methods still run
+(as in 1.x) but warn that your credentials are exposed client-side; `netgsm.sms` and `netgsm.iys`
+throw there unless `dangerouslyAllowBrowser: true`.
+
+Without `process.emitWarning` (browsers) the deprecation warning goes to `console.warn` once and
+cannot be silenced. `dangerouslyAllowBrowser` silences only the credentials warning.
+
+## Moving off the deprecated methods
+
+The new APIs are Identity (`/auth/v3`), SMS (`/sms/v3`) and İYS (`/iys/v1`) on
+`ext-api.netgsm.com.tr`. Method names, request fields, response shapes and error handling change,
+so plan to touch every call site. You can migrate one call at a time: both styles work on the same
+client.
+
+### The client
+
+```ts
+// 1.x
+const netgsm = new Netgsm({ username, password, appname: 'my-app' });
+await netgsm.sendRestSms({ /* ... */ });
+
+// 2.x
+const netgsm = new Netgsm({ username, password });
+await netgsm.sms.send({ /* ... */ });
+```
+
+- API methods live under `netgsm.sms` (SMS API v3) and `netgsm.iys` (İYS API v1).
+- The client-level `appname` option is deprecated (it only affects the legacy methods). Pass
+  `appName` per call where the API accepts it (`sms.send`, `sms.sendTemplate`, `sms.sendOtp`).
+- New options: `baseUrl`, `scope`, `enterpriseOtp`, `iysBrandCode`, `maxRetryAfterSec`, `fetch`,
+  `now`, `dangerouslyAllowBrowser`. See the README.
+- The default base URL is the live `https://ext-api.netgsm.com.tr`. Use `NetgsmEnvironment.SANDBOX`
+  or the local mock while you migrate; see the README's Environments table. The sandbox and the mock
+  apply only to `netgsm.sms` and `netgsm.iys`: the deprecated 1.x methods always call the live
+  legacy API and reject (no request is made) when `baseUrl` points to another environment.
+- The 1.x enums (`SendSmsErrorCode`, `BalanceType`, report status enums and so on) stay exported for
+  the legacy methods only. The new API uses string unions (`'DELIVERED'`, `'INSUFFICIENT_CREDIT'`, ...).
+
+### Authentication
+
+1.x sent HTTP Basic credentials on every request (and username and password in the body of
+`checkBalance`). 2.x logs in to `/auth/v3/token` itself, keeps the access token, refreshes it before
+it expires and re-logs in once on a `401`. You only pass `username` and `password`; there is nothing
+to configure and no token to handle.
+
+### Method mapping
+
+| 1.x | 2.x | Notes |
+|---|---|---|
+| `sendRestSms` | `sms.send` | See [Send](#send). |
+| `sendOtpSms` | `sms.sendOtp` | `msgheader` -> `sender`, `msg` -> `text`, `no` -> `recipient`. Returns `{ jobId }`. |
+| `cancelSms` | `sms.cancel` | `{ jobid }` -> `{ jobId }`. Returns `{ jobId, cancelledAt }`. |
+| `getReport` | `sms.getReport` | `bulkIds` -> `jobIds`; see [Reports](#reports-stats-and-inbox). |
+| `getStats` | `sms.getStats` | `jobid` -> `jobId`; `senddate` -> `month`: pass the `yyyy-MM` of the send date; defaults to the current month. |
+| `getHeaders` | `sms.listSenders` | Returns `{ count, senders }`; each sender has `name`, `type`, `brandCode`, `usable`, `reason`. |
+| `getInbox` | `sms.getInbox` | `startdate` / `stopdate` -> `startAt` / `stopAt` (ISO-8601 with offset). |
+| `checkBalance` | `sms.getBalance` | `stip` stays (`1`, `2`, `3`); new optional `service`; `appkey` is gone. |
+| (none) | `sms.sendTemplate`, `sms.sendToDirectory`, `sms.getDefaultSender`, `sms.setDefaultSender`, `sms.registerReportWebhook`, `sms.deleteReportWebhook`, `sms.registerInboxWebhook`, `sms.deleteInboxWebhook`, `sms.getBlacklist`, `sms.measureLength`, `sms.listTemplates` | New in the v3 API. |
+| (none) | `iys.saveConsents`, `iys.searchConsents`, `iys.saveWebhook` | İYS API v1. |
+
+#### Send
+
+```ts
+// 1.x
+await netgsm.sendRestSms({
+  msgheader: 'YOUR_HEADER',
+  encoding: 'TR',
+  startdate: '010620241530', // ddMMyyyyHHmm
+  messages: [{ msg: 'Hello', no: '5XXXXXXXXX' }],
+});
+
+// 2.x
+await netgsm.sms.send({
+  sender: 'YOUR_HEADER',
+  encoding: 'TURKISH',
+  startAt: '2024-06-01T15:30:00+03:00', // ISO-8601 with offset
+  messages: [{ text: 'Hello', recipient: '905XXXXXXXXX' }],
+});
+```
+
+| 1.x field | 2.x field | Notes |
+|---|---|---|
+| `msgheader` | `sender` | Matched exactly, case-sensitive. |
+| `messages[].msg` | `messages[].text` | |
+| `messages[].no` | `messages[].recipient` | Written `90XXXXXXXXXX` (12 digits) in the v3 API, or `-` followed by the country code and number for international (for example `-4915112345678`; needs account permission). |
+| `encoding: 'TR'` | `encoding: 'TURKISH'` | v3 accepts `'DEFAULT'`, `'TURKISH'` and `'UNICODE'`. For any other 1.x value, check the API documentation for the closest v3 value instead of assuming. |
+| `startdate` (`ddMMyyyyHHmm`) | `startAt` | ISO-8601 with a UTC offset, for example `2026-08-31T09:00:00+03:00`. |
+| `stopdate` (`ddMMyyyyHHmm`) | `stopAt` | Same format as `startAt`. |
+| `iysfilter` | `iysFilter` | Values are `'NONE'`, `'BRAND'`, `'RETAILER'` or `'BRAND_AND_RETAILER'`. Choose `BRAND`, `RETAILER` or `BRAND_AND_RETAILER` according to your account's İYS registration. The mapping of the legacy `iysfilter` values (such as `"11"` and `"12"`) is being confirmed and will be added here. Do not guess it for a production sender. |
+| `partnercode` | `partnerCode` | |
+| `appname` | `appName` | |
+| (none) | `referenceId` | New: echoed in reports and webhooks. |
+
+The 1.x response was `{ code, description, jobid }`. 2.x returns `{ jobId, status, accepted, rejected,
+rejectedItems, rejectedItemsTruncated, referenceId }`. A send with some invalid recipients still
+succeeds; read `rejectedItems` (at most 100 entries, see `rejectedItemsTruncated`).
+
+#### Reports, stats and inbox
+
+- `getReport`: `bulkIds` -> `jobIds`, `startdate` / `stopdate` -> `startAt` / `stopAt`,
+  `pageNumber` -> `page`. `pageSize` has no 2.x counterpart. The response is
+  `{ count, page, reports }`; entries are `{ jobId, number, status, operator, messageLength,
+  deliveredAt, failReason, referenceId }`. `status` is now `'PENDING'`, `'DELIVERED'` or
+  `'NOT_DELIVERED'` (1.x returned numeric codes), `operator` and `failReason` are names, and 1.x
+  `referansID` is `referenceId` (webhook payloads still use `referansID`).
+- `getStats`: the response is `{ jobId, month, count, stats }`.
+- `getInbox`: the response is `{ count, messages, truncated }`; a message has `id`, `jobId`, `sender`,
+  `text`, `operator`, `receivedAt`.
+- `getBalance`: with `stip: 2` you get `{ code: '00', balance, type }` (the `code` is part of that
+  response shape); the default returns `{ balance: [{ amount, balance_name }] }`. Use `findBalance` and
+  `parseCredit` for values such as `"92,150"`.
+
+### Error model
+
+1.x resolved or rejected based on a `code` field in a (usually HTTP 200) body, where `code: "00"`
+meant success, and threw plain objects (`{ status, code, description }`). The deprecated methods
+keep doing exactly that.
+
+`netgsm.sms` and `netgsm.iys` rely on HTTP status codes: a successful call resolves with the
+response body, and there is no `code: "00"` to check. Every failure rejects with a
+`NetgsmApiError`:
+
+```ts
+import { NetgsmApiError } from '@netgsm/sms';
+
+try {
+  await netgsm.sms.send(request);
+} catch (err) {
+  if (err instanceof NetgsmApiError) {
+    err.status; // HTTP status, 0 when no response arrived
+    err.code; // API error code, or NETWORK_ERROR / INVALID_RESPONSE
+    err.requestId; // quote it to support
+    err.retryable;
+    err.mayHaveBeenProcessed; // true: do not resend a send, check sms.getReport first
+  }
+}
+```
+
+- The numeric 1.x codes (`"20"`, `"30"`, ...) are replaced by named codes such as
+  `INSUFFICIENT_CREDIT` or `REJECTED_HEADER`.
+- 1.x did not retry. 2.x retries only where it is safe (see the README's Error handling section) and
+  never retries a send after a possibly-processed failure.
+- Argument problems throw `TypeError` / `RangeError` before any request is made.
+
+### Checklist
+
+1. Upgrade to Node.js 20 or later.
+2. `npm install @netgsm/sms@2`. TypeScript: use `LegacyReportResponse` / `LegacyStatsResponse`
+   where you still need the 1.x shapes.
+3. Replace `sendRestSms` and the other methods using the table above; convert dates to ISO-8601 with
+   offset and numbers to `90XXXXXXXXXX`.
+4. Replace `code === '00'` checks with `try` / `catch` on `NetgsmApiError`.
+5. Run against the local mock or the sandbox, then go live.
+6. Decide your `iysFilter` per the note in the table above.

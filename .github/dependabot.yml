@@ -1,26 +1,28 @@
 version: 2
 updates:
-  # Dependency updates for npm packages
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    versioning-strategy: increase
+      interval: "monthly"
+    open-pull-requests-limit: 5
     labels:
       - "npm"
       - "dependencies"
-    ignore:
-      # Ignore major version updates
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-        
-  # Dependency updates for GitHub Actions
+    groups:
+      dev-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "*"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 5
     labels:
       - "github-actions"
-      - "dependencies" 
+      - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

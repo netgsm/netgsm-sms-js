@@ -6,8 +6,8 @@ The following versions are currently supported with security updates:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.1.x   | :white_check_mark: |
-| 1.0.x   | :x:                |
+| 2.x     | :white_check_mark: |
+| 1.x     | Targets the legacy API; receives no new features. The same legacy API stays reachable in 2.x through the deprecated 1.x methods (removed in 3.0.0) |
 
 ## Reporting a Vulnerability
 

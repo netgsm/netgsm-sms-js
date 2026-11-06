@@ -1,378 +1,269 @@
-/**
- * @module Netgsm
- * @description Netgsm SMS API client implementation
- */
-
-import {
-  SendSmsErrorCode,
-  SendOtpSmsErrorCode,
-  CancelErrorCode,
-  ReportErrorCode,
-  StatsErrorCode,
-  MsgHeaderErrorCode,
-  InboxErrorCode,
-} from "./enums";
-import {
-  NetgsmConfig,
-  ReportPayload,
-  ReportResponse,
-  HeaderQueryResponse,
-  HeaderQueryPayload,
-  BalanceResponse,
+import { TokenManager } from './core/token-manager.js';
+import { sleep } from './core/retry-after.js';
+import { NetgsmEnvironment } from './environment.js';
+import { IysApi as IysApiClass } from './iys/iys-api.js';
+import { IysTransport } from './iys/transport.js';
+import { SmsApi as SmsApiClass } from './sms/sms-api.js';
+import { SmsTransport } from './sms/transport.js';
+import { LegacyClient } from './legacy/legacy-client.js';
+import { warnBrowserCredentials, warnDeprecated } from './legacy/deprecation.js';
+import type {
   BalancePayload,
+  BalanceResponse,
   CancelSmsPayload,
   CancelSmsResponse,
-  SmsInboxResponse,
-  SmsInboxPayload,
-  RestSmsPayload,
-  RestSmsResponse,
+  HeaderQueryPayload,
+  HeaderQueryResponse,
+  LegacyReportResponse,
+  LegacyStatsResponse,
   OtpSmsPayload,
   OtpSmsResponse,
+  ReportPayload,
+  RestSmsPayload,
+  RestSmsResponse,
+  SmsInboxPayload,
+  SmsInboxResponse,
   StatsPayload,
-  StatsResponse,
-} from "./types";
+} from './legacy/types.js';
+import { VERSION } from './version.js';
 
 /**
- * Validates if a code exists in an enum, returns "5000" if not found
- * @param code - The code to validate
- * @param enumObj - The enum object to check against (optional)
- * @returns Valid code or "5000" for undefined errors
+ * Public shape of `netgsm.sms`. A mapped type over the implementation class, so the class (with its
+ * private brand) is not part of the public API: it cannot be imported or used with `instanceof`, and
+ * structural fakes are assignable.
  */
-function normalizeErrorCode(code: string | undefined | null, enumObj?: object): string {
-  if (!code || typeof code !== "string") {
-    return "5000";
-  }
+export type SmsApi = { [K in keyof SmsApiClass]: SmsApiClass[K] };
+/** Public shape of `netgsm.iys`; see {@link SmsApi}. */
+export type IysApi = { [K in keyof IysApiClass]: IysApiClass[K] };
 
-  // If enum provided, check if code exists in enum values
-  if (enumObj && !Object.values(enumObj).includes(code)) {
-    return "5000";
-  }
-
-  return code;
+export interface NetgsmOptions {
+  username: string;
+  password: string;
+  /** Defaults to {@link NetgsmEnvironment.LIVE}. */
+  baseUrl?: string;
+  /** Token scope, default `'sms'`. */
+  scope?: string;
+  /** Sends `x-client: enterprise` on `sms.sendOtp` (enterprise OTP accounts only). */
+  enterpriseOtp?: boolean;
+  /** Default İYS brand code for `iys.*` calls. */
+  iysBrandCode?: number;
+  /** Upper bound for honoring a `Retry-After` header, default 60. */
+  maxRetryAfterSec?: number;
+  fetch?: typeof fetch;
+  now?: () => number;
+  /**
+   * Application name sent by the legacy 1.x methods as `<appname>-sdk-js` (falsy means none, other
+   * non-strings are stringified, as in 1.x). Has no effect on `sms` / `iys`.
+   * @deprecated since 2.0.0; only the deprecated 1.x methods use it. See MIGRATION.md.
+   */
+  appname?: string;
+  /** Credentials must stay server-side; set only if you accept the risk. */
+  dangerouslyAllowBrowser?: boolean;
 }
 
-/**
- * Netgsm API Client
- *
- * Provides methods to interact with Netgsm's REST API for sending SMS.
- */
-class Netgsm {
-  private baseURL = "https://api.netgsm.com.tr";
-  private headers: HeadersInit;
-  private sdkAppName?: string;
+const BASE_URL_ERROR =
+  'baseUrl must be a valid http(s) URL without credentials, query or fragment';
 
-  /**
-   * Initialize the Netgsm client.
-   * @param {NetgsmConfig} config - Configuration object containing username and password.
-   */
-  constructor(private config: NetgsmConfig) {
-    if (!config.username || !config.password) {
-      throw new Error("Username and password are required");
-    }
-    const authToken = this.generateAuthToken(this.config.username, this.config.password);
-    this.headers = {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${authToken}`,
-    };
-
-    // Eğer appname belirtilmişse, SDK için özel format oluştur
-    if (config.appname) {
-      this.sdkAppName = `${config.appname}-sdk-js`;
-    }
+function normalizeBaseUrl(raw: unknown): string {
+  if (typeof raw !== 'string') throw new TypeError(BASE_URL_ERROR);
+  const trimmed = raw.trim().replace(/\/+$/, '');
+  // A bare trailing '?' or '#' is dropped by URL parsing, so check the raw text.
+  if (trimmed.includes('?') || trimmed.includes('#')) throw new TypeError(BASE_URL_ERROR);
+  let ok = false;
+  try {
+    const u = new URL(trimmed);
+    ok =
+      (u.protocol === 'http:' || u.protocol === 'https:') &&
+      !u.username &&
+      !u.password &&
+      !u.search &&
+      !u.hash;
+  } catch {
+    ok = false;
   }
+  if (!ok) throw new TypeError(BASE_URL_ERROR);
+  return trimmed;
+}
 
-  /**
-   * Generate Base64 encoded authorization token
-   *
-   * The credentials are encoded as UTF-8 before btoa, so the token matches what
-   * Buffer produced on Node.js, and no runtime needs Buffer or a window object.
-   * @param {string} username - Username for authentication.
-   * @param {string} password - Password for authentication.
-   * @returns {string} - Base64 encoded token.
-   */
-  private generateAuthToken(username: string, password: string): string {
-    const bytes = new TextEncoder().encode(`${username}:${password}`);
-    let binary = "";
-    bytes.forEach((byte) => {
-      binary += String.fromCharCode(byte);
-    });
-    return btoa(binary);
+function assertOptions(o: NetgsmOptions): void {
+  const bad = (name: string, rule: string): never => {
+    throw new TypeError(`${name} must be ${rule}`);
+  };
+  if (o.maxRetryAfterSec !== undefined && !(typeof o.maxRetryAfterSec === 'number' && Number.isFinite(o.maxRetryAfterSec) && o.maxRetryAfterSec >= 0)) {
+    bad('maxRetryAfterSec', 'a finite number >= 0');
   }
-
-  /**
-   * Send SMS using REST v2 API
-   * @param {RestSmsPayload} payload - JSON payload for sending SMS.
-   * @returns {Promise<RestSmsResponse>} - The API response.
-   */
-  async sendRestSms(payload: RestSmsPayload): Promise<RestSmsResponse> {
-    const response = await fetch(`${this.baseURL}/sms/rest/v2/send`, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify({
-        msgheader: payload.msgheader,
-        ...(payload?.appname
-          ? { appname: payload.appname }
-          : this.sdkAppName
-            ? { appname: this.sdkAppName }
-            : {}),
-        ...(payload?.iysfilter && { iysfilter: payload.iysfilter }),
-        ...(payload?.partnercode && { partnercode: payload.partnercode }),
-        ...(payload?.encoding && { encoding: payload.encoding }),
-        messages: payload.messages,
-        ...(payload?.startdate && { startdate: payload.startdate }),
-        ...(payload?.stopdate && { stopdate: payload.stopdate }),
-      }),
-    });
-
-    return await this.handleResponse<RestSmsResponse>(response, SendSmsErrorCode, {
-      successCodes: [
-        SendSmsErrorCode.SUCCESS,
-        SendSmsErrorCode.START_DATE_CORRECTED,
-        SendSmsErrorCode.STOP_DATE_CORRECTED,
-      ],
-    });
+  if (
+    o.iysBrandCode !== undefined &&
+    !(Number.isInteger(o.iysBrandCode) && o.iysBrandCode > 0 && o.iysBrandCode <= 2147483647)
+  ) {
+    bad('iysBrandCode', 'a positive integer up to 2147483647');
   }
-
-  /**
-   * Send OTP SMS using REST v2 API
-   * @param {OtpSmsPayload} payload - JSON payload for sending OTP SMS.
-   * @returns {Promise<OtpSmsResponse>} - The API response.
-   */
-  async sendOtpSms(payload: OtpSmsPayload): Promise<OtpSmsResponse> {
-    const response = await fetch(`${this.baseURL}/sms/rest/v2/otp`, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify({
-        msgheader: payload.msgheader,
-        ...(payload?.appname
-          ? { appname: payload.appname }
-          : this.sdkAppName
-            ? { appname: this.sdkAppName }
-            : {}),
-        msg: payload.msg,
-        no: payload.no,
-      }),
-    });
-
-    return await this.handleResponse<OtpSmsResponse>(response, SendOtpSmsErrorCode);
-  }
-
-  /**
-   * Cancel a scheduled SMS
-   * @param {CancelSmsPayload} payload - JSON payload for cancelling SMS.
-   * @returns {Promise<CancelSmsResponse>} - The API response.
-   */
-  async cancelSms(payload: CancelSmsPayload): Promise<CancelSmsResponse> {
-    const response = await fetch(`${this.baseURL}/sms/rest/v2/cancel`, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify({
-        jobid: payload.jobid,
-        ...(payload?.appname
-          ? { appname: payload.appname }
-          : this.sdkAppName
-            ? { appname: this.sdkAppName }
-            : {}),
-      }),
-    });
-
-    return await this.handleResponse<CancelSmsResponse>(response, CancelErrorCode);
-  }
-
-  /**
-   * Get SMS report using REST v2 API
-   * @param {ReportPayload} payload - JSON payload for fetching SMS report.
-   * @returns {Promise<ReportResponse>} - The API response containing report details.
-   */
-  async getReport(payload: ReportPayload): Promise<ReportResponse> {
-    const response = await fetch(`${this.baseURL}/sms/rest/v2/report`, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify({
-        jobids: payload.bulkIds,
-        startdate: payload.startdate,
-        stopdate: payload.stopdate,
-        appname: payload?.appname || this.sdkAppName,
-        pagenumber: payload?.pageNumber,
-        pagesize: payload?.pageSize,
-      }),
-    });
-
-    return await this.handleResponse<ReportResponse>(response, ReportErrorCode);
-  }
-
-  /**
-   * Get SMS statistics using REST v2 API
-   * @param {StatsPayload} payload - JSON payload for fetching SMS report.
-   * @returns {Promise<StatsResponse>} - The API response containing report details.
-   */
-  async getStats(payload: StatsPayload): Promise<StatsResponse> {
-    const response = await fetch(`${this.baseURL}/sms/rest/v2/stats`, {
-      method: "POST",
-      headers: this.headers,
-      body: JSON.stringify({
-        jobid: payload.jobid,
-        sendDate: payload?.senddate,
-        appname: payload?.appname || this.sdkAppName,
-      }),
-    });
-
-    return await this.handleResponse<StatsResponse>(response, StatsErrorCode, {
-      successWithoutCode: true,
-    });
-  }
-
-  /**
-   * Get registered sender IDs/headers using REST v2 API
-   * @param {HeaderQueryPayload} payload - Optional payload for the query
-   * @returns {Promise<HeaderQueryResponse>} - The API response containing header details.
-   */
-  async getHeaders(payload?: HeaderQueryPayload): Promise<HeaderQueryResponse> {
-    const url = new URL(`${this.baseURL}/sms/rest/v2/msgheader`);
-
-    if (payload?.appname || this.sdkAppName) {
-      url.searchParams.append("appname", payload?.appname || this.sdkAppName || "");
-    }
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: this.headers,
-    });
-
-    return await this.handleResponse<HeaderQueryResponse>(response, MsgHeaderErrorCode);
-  }
-
-  /**
-   * Get inbox messages
-   * @param {SmsInboxPayload} payload - Optional payload for the query
-   * @returns {Promise<SmsInboxResponse>} - The API response containing inbox messages.
-   */
-  async getInbox(payload?: SmsInboxPayload): Promise<SmsInboxResponse> {
-    const url = new URL(`${this.baseURL}/sms/rest/v2/inbox`);
-
-    if (payload?.appname || this.sdkAppName) {
-      url.searchParams.append("appname", payload?.appname || this.sdkAppName || "");
-    }
-
-    if (payload?.startdate) {
-      url.searchParams.append("startdate", payload.startdate);
-    }
-
-    if (payload?.stopdate) {
-      url.searchParams.append("stopdate", payload.stopdate);
-    }
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: this.headers,
-    });
-
-    return await this.handleResponse<SmsInboxResponse>(response, InboxErrorCode);
-  }
-
-  /**
-   * Checks balance/package information
-   * @param payload Balance query parameters
-   * @returns Balance information
-   */
-  async checkBalance(payload: BalancePayload): Promise<BalanceResponse> {
-    const url = `${this.baseURL}/balance`;
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        usercode: this.config.username,
-        password: this.config.password,
-        stip: payload.stip,
-        ...(payload?.appkey && { appkey: payload.appkey }),
-      }),
-    });
-
-    const data = await response.json();
-
-    if (response.status !== 200) {
-      throw {
-        status: response.status,
-        ...data,
-      };
-    }
-
-    return data;
-  }
-
-  /**
-   * Parse a response and reject unless its code is a success code
-   * @template T
-   * @param {Response} response - The fetch response.
-   * @param {object} errorCodeEnum - The endpoint's code enum, used to normalize unknown codes.
-   * @param {object} options - How the response is read.
-   * @param {string[]} options.successCodes - Codes that mean the request was accepted, "00" when omitted.
-   * @param {boolean} options.successWithoutCode - Whether a 200 response without a code is a success,
-   * which is how /sms/rest/v2/stats answers a successful query.
-   * @returns {Promise<T>} - The parsed response.
-   */
-  private async handleResponse<T>(
-    response: Response,
-    errorCodeEnum?: object,
-    {
-      successCodes = ["00"],
-      successWithoutCode = false,
-    }: { successCodes?: string[]; successWithoutCode?: boolean } = {}
-  ): Promise<T> {
-    // Try to parse JSON response
-    let data;
-    try {
-      data = await response.json();
-    } catch (error) {
-      // If JSON parsing fails, throw HTTP error
-      throw {
-        status: response.status,
-        code: "PARSE_ERROR",
-        description: `Failed to parse JSON response: ${error instanceof Error ? error.message : "Unknown error"}`,
-      };
-    }
-
-    // Check if response is success status
-    if (response.status === 200 || response.status === 406) {
-      // Validate data structure
-      if (typeof data !== "object" || data === null) {
-        throw {
-          status: response.status,
-          code: "INVALID_RESPONSE",
-          description: "Response is not a valid object",
-        };
-      }
-
-      // A successful stats query carries no code, so it is reported as "00"
-      if (successWithoutCode && response.status === 200 && data.code === undefined) {
-        data.code = "00";
-      }
-
-      // Normalize error code - if code is missing or not in enum, set to "5000"
-      data.code = normalizeErrorCode(data.code, errorCodeEnum);
-
-      // Check if API returned an error code
-      if (!successCodes.includes(data.code)) {
-        throw {
-          status: response.status !== 200 ? response.status : 406,
-          ...data,
-        };
-      }
-
-      // Success case
-      return data as T;
-    }
-
-    // HTTP error cases (non-200/406 status codes)
-    throw {
-      status: response.status,
-      code: normalizeErrorCode(data?.code, errorCodeEnum) || response.statusText,
-      description: data?.description || "HTTP Error",
-    };
+  if (o.enterpriseOtp !== undefined && typeof o.enterpriseOtp !== 'boolean') bad('enterpriseOtp', 'a boolean');
+  if (o.fetch !== undefined && typeof o.fetch !== 'function') bad('fetch', 'a function');
+  if (o.now !== undefined && typeof o.now !== 'function') bad('now', 'a function');
+  if (o.dangerouslyAllowBrowser !== undefined && typeof o.dangerouslyAllowBrowser !== 'boolean') {
+    bad('dangerouslyAllowBrowser', 'a boolean');
   }
 }
 
-export default Netgsm;
+function coerceCredential(v: unknown): string {
+  return typeof v === 'number' && Number.isFinite(v) ? String(v) : (v as string);
+}
+
+function isBrowserLike(): boolean {
+  return (
+    typeof document !== 'undefined' ||
+    (typeof window !== 'undefined' && typeof (globalThis as { Deno?: unknown }).Deno === 'undefined')
+  );
+}
+
+const BROWSER_ERROR =
+  'Netgsm credentials must stay server-side: do not use this SDK in a browser. ' +
+  'Set dangerouslyAllowBrowser: true only if you accept the risk.';
+
+const LEGACY_DISABLED_ERROR =
+  'The deprecated 1.x methods always use the live legacy API and have no sandbox or mock, so they ' +
+  'are disabled when baseUrl points to another environment. Use netgsm.sms.* there.';
+
+export class Netgsm {
+  readonly #sms: SmsApi;
+  readonly #iys: IysApi;
+  readonly #baseUrl: string;
+  readonly #legacy: LegacyClient;
+  readonly #allowBrowser: boolean;
+  readonly #legacyEnabled: boolean;
+
+  constructor(options: NetgsmOptions) {
+    // 1.x accepted numeric credentials (e.g. read from JSON) and appname: null; keep that.
+    const o: NetgsmOptions = options
+      ? {
+          ...options,
+          username: coerceCredential(options.username),
+          password: coerceCredential(options.password),
+        }
+      : options;
+    if (!o || typeof o.username !== 'string' || o.username === '') {
+      throw new TypeError('username must be a non-empty string');
+    }
+    if (typeof o.password !== 'string' || o.password === '') {
+      throw new TypeError('password must be a non-empty string');
+    }
+    assertOptions(o);
+    const baseUrl = normalizeBaseUrl(o.baseUrl ?? NetgsmEnvironment.LIVE);
+    this.#allowBrowser = o.dangerouslyAllowBrowser === true;
+    const userFetch = o.fetch;
+    // Always wrap: a bare fetch called as a method (this.o.fetch) throws Illegal invocation
+    // in browsers and Workers.
+    const fetchImpl: typeof fetch = userFetch
+      ? (...a) => userFetch(...a)
+      : (...a) => globalThis.fetch(...a);
+    const now = o.now ?? Date.now;
+
+    const tokens = new TokenManager({
+      baseUrl,
+      username: o.username,
+      password: o.password,
+      scope: o.scope ?? 'sms',
+      fetch: fetchImpl,
+      now,
+    });
+    const transportOptions = {
+      baseUrl,
+      tokens,
+      fetch: fetchImpl,
+      now,
+      sleep,
+      maxRetryAfterSec: o.maxRetryAfterSec ?? 60,
+      userAgent: `netgsm-sms-js/${VERSION}`,
+    };
+    this.#baseUrl = baseUrl;
+    this.#legacyEnabled = baseUrl === NetgsmEnvironment.LIVE;
+    this.#legacy = new LegacyClient({
+      username: o.username,
+      password: o.password,
+      // 1.x: a falsy appname means none; any other value was interpolated into `${appname}-sdk-js`.
+      ...(o.appname ? { appname: String(o.appname) } : {}),
+      fetch: fetchImpl,
+    });
+    this.#sms = new SmsApiClass(new SmsTransport(transportOptions), {
+      enterpriseOtp: o.enterpriseOtp ?? false,
+    });
+    this.#iys = new IysApiClass(new IysTransport(transportOptions), {
+      ...(o.iysBrandCode !== undefined ? { brandCode: o.iysBrandCode } : {}),
+    });
+  }
+
+  /** SMS API v3. Throws in a browser-like environment unless `dangerouslyAllowBrowser: true`. */
+  get sms(): SmsApi {
+    this.#assertServerSide();
+    return this.#sms;
+  }
+
+  /** İYS consent API. Throws in a browser-like environment unless `dangerouslyAllowBrowser: true`. */
+  get iys(): IysApi {
+    this.#assertServerSide();
+    return this.#iys;
+  }
+
+  #assertServerSide(): void {
+    if (!this.#allowBrowser && isBrowserLike()) throw new Error(BROWSER_ERROR);
+  }
+
+  /** Warns (once per method) that a 1.x method is deprecated; in browsers also that credentials are exposed. */
+  #legacyUse(method: string): LegacyClient {
+    warnDeprecated(method);
+    if (!this.#allowBrowser && isBrowserLike()) warnBrowserCredentials();
+    return this.#legacy;
+  }
+
+  /** Runs a deprecated 1.x call; rejects without a request unless baseUrl is the live environment. */
+  #legacyRun<T>(method: string, call: (client: LegacyClient) => Promise<T>): Promise<T> {
+    const client = this.#legacyUse(method);
+    if (!this.#legacyEnabled) return Promise.reject(new Error(LEGACY_DISABLED_ERROR));
+    return call(client);
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.send; see MIGRATION.md. Removed in 3.0.0. */
+  sendRestSms(payload: RestSmsPayload): Promise<RestSmsResponse> {
+    return this.#legacyRun('sendRestSms', (c) => c.sendRestSms(payload));
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.sendOtp; see MIGRATION.md. Removed in 3.0.0. */
+  sendOtpSms(payload: OtpSmsPayload): Promise<OtpSmsResponse> {
+    return this.#legacyRun('sendOtpSms', (c) => c.sendOtpSms(payload));
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.cancel; see MIGRATION.md. Removed in 3.0.0. */
+  cancelSms(payload: CancelSmsPayload): Promise<CancelSmsResponse> {
+    return this.#legacyRun('cancelSms', (c) => c.cancelSms(payload));
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.getReport; see MIGRATION.md. Removed in 3.0.0. */
+  getReport(payload: ReportPayload): Promise<LegacyReportResponse> {
+    return this.#legacyRun('getReport', (c) => c.getReport(payload));
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.getStats; see MIGRATION.md. Removed in 3.0.0. */
+  getStats(payload: StatsPayload): Promise<LegacyStatsResponse> {
+    return this.#legacyRun('getStats', (c) => c.getStats(payload));
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.listSenders; see MIGRATION.md. Removed in 3.0.0. */
+  getHeaders(payload?: HeaderQueryPayload): Promise<HeaderQueryResponse> {
+    return this.#legacyRun('getHeaders', (c) => c.getHeaders(payload));
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.getInbox; see MIGRATION.md. Removed in 3.0.0. */
+  getInbox(payload?: SmsInboxPayload): Promise<SmsInboxResponse> {
+    return this.#legacyRun('getInbox', (c) => c.getInbox(payload));
+  }
+
+  /** @deprecated since 2.0.0 — use netgsm.sms.getBalance; see MIGRATION.md. Removed in 3.0.0. */
+  checkBalance(payload: BalancePayload): Promise<BalanceResponse> {
+    return this.#legacyRun('checkBalance', (c) => c.checkBalance(payload));
+  }
+
+  toJSON(): { baseUrl: string } {
+    return { baseUrl: this.#baseUrl };
+  }
+}
