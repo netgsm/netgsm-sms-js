@@ -13,36 +13,6 @@ Official JavaScript / TypeScript client for the Netgsm SMS API v3 (`/sms/v3`) an
 - One method per API operation, typed after the API specification (field names are the API's own).
 - Coming from 1.x? Your code keeps working; see [Upgrading from 1.x](#upgrading-from-1x).
 
-## Upgrading from 1.x
-
-Upgrading to 2.x is non-breaking for 1.x JavaScript code. The eight 1.x methods (`sendRestSms`,
-`sendOtpSms`, `cancelSms`, `getReport`, `getStats`, `getHeaders`, `getInbox`, `checkBalance`) still
-exist with the same arguments, the same requests to the legacy API (`api.netgsm.com.tr`) and the
-same response and error shapes:
-
-```ts
-import { Netgsm } from '@netgsm/sms';
-
-const netgsm = new Netgsm({ username: '850XXXXXXX', password: 'YOUR_PASSWORD', appname: 'my-app' });
-const res = await netgsm.sendRestSms({
-  msgheader: 'YOUR_HEADER',
-  messages: [{ msg: 'Hello', no: '5XXXXXXXXX' }],
-});
-console.log(res.code, res.jobid);
-```
-
-- Each 1.x method prints a one-time `DeprecationWarning` that names its replacement.
-- Silence the warnings with `node --no-deprecation app.js` or `process.noDeprecation = true`. Without
-  `process.emitWarning` (browsers) the warning goes to `console.warn` once and cannot be silenced;
-  `dangerouslyAllowBrowser` silences only the credentials warning.
-- The deprecated methods always call the live legacy API. They reject without a request when
-  `baseUrl` points to the sandbox or the mock.
-- The deprecated methods and the `appname` option are removed in 3.0.0.
-- To move to the new API, use `netgsm.sms` and `netgsm.iys`; [MIGRATION.md](./MIGRATION.md) maps
-  every 1.x method and field.
-
-The few things that can break are listed at the top of [MIGRATION.md](./MIGRATION.md).
-
 ## Server-side only
 
 Your Netgsm username and password must never reach a browser or mobile app. In a browser
@@ -363,6 +333,36 @@ success and `81` when no consent record exists.
 
 `iys.saveWebhook(webhookUrl)` registers the İYS webhook address for the brand; it
 replaces the brand's previous address and changes the live account setting.
+
+## Upgrading from 1.x
+
+Upgrading to 2.x is non-breaking for 1.x JavaScript code. The eight 1.x methods (`sendRestSms`,
+`sendOtpSms`, `cancelSms`, `getReport`, `getStats`, `getHeaders`, `getInbox`, `checkBalance`) still
+exist with the same arguments, the same requests to the legacy API (`api.netgsm.com.tr`) and the
+same response and error shapes:
+
+```ts
+import { Netgsm } from '@netgsm/sms';
+
+const netgsm = new Netgsm({ username: '850XXXXXXX', password: 'YOUR_PASSWORD', appname: 'my-app' });
+const res = await netgsm.sendRestSms({
+  msgheader: 'YOUR_HEADER',
+  messages: [{ msg: 'Hello', no: '5XXXXXXXXX' }],
+});
+console.log(res.code, res.jobid);
+```
+
+- Each 1.x method prints a one-time `DeprecationWarning` that names its replacement.
+- Silence the warnings with `node --no-deprecation app.js` or `process.noDeprecation = true`. Without
+  `process.emitWarning` (browsers) the warning goes to `console.warn` once and cannot be silenced;
+  `dangerouslyAllowBrowser` silences only the credentials warning.
+- The deprecated methods always call the live legacy API. They reject without a request when
+  `baseUrl` points to the sandbox or the mock.
+- The deprecated methods and the `appname` option are removed in 3.0.0.
+- To move to the new API, use `netgsm.sms` and `netgsm.iys`; [MIGRATION.md](./MIGRATION.md) maps
+  every 1.x method and field.
+
+The few things that can break are listed at the top of [MIGRATION.md](./MIGRATION.md).
 
 ## Agent skills and documentation
 
