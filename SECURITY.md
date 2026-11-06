@@ -13,7 +13,7 @@ The following versions are currently supported with security updates:
 
 If you discover a security vulnerability in the @netgsm/sms project, please report it directly to the project maintainers rather than disclosing it publicly. You can report security vulnerabilities by following these steps:
 
-1. Send an email with details of the security vulnerability.
+1. Send an email with details of the security vulnerability to [teknikdestek@netgsm.com.tr](mailto:teknikdestek@netgsm.com.tr).
 2. Explain how the vulnerability can be reproduced.
 3. If possible, provide a suggested fix or workaround for the vulnerability.
 

@@ -66,7 +66,11 @@ const BASE_URL_ERROR =
 
 function normalizeBaseUrl(raw: unknown): string {
   if (typeof raw !== 'string') throw new TypeError(BASE_URL_ERROR);
-  const trimmed = raw.trim().replace(/\/+$/, '');
+  // Strip trailing slashes with a linear scan; /\/+$/ backtracks polynomially on long slash runs.
+  const t = raw.trim();
+  let end = t.length;
+  while (end > 0 && t.charCodeAt(end - 1) === 0x2f) end--;
+  const trimmed = t.slice(0, end);
   // A bare trailing '?' or '#' is dropped by URL parsing, so check the raw text.
   if (trimmed.includes('?') || trimmed.includes('#')) throw new TypeError(BASE_URL_ERROR);
   let ok = false;
