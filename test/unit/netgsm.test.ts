@@ -71,6 +71,14 @@ describe('Netgsm facade', () => {
     expect(calls[1]!.url.startsWith('http://127.0.0.1:4010/sms/v3/balance')).toBe(true);
   });
 
+  it('trims a long run of trailing slashes in linear time', () => {
+    const started = Date.now();
+    const n = new Netgsm({ ...opts, baseUrl: 'http://127.0.0.1:4010' + '/'.repeat(100_000) });
+    expect(n.toJSON().baseUrl).toBe('http://127.0.0.1:4010');
+    expect(() => new Netgsm({ ...opts, baseUrl: '/'.repeat(100_000) + 'x' })).toThrow(TypeError);
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
   it('defaults to the live environment', async () => {
     const { fetch, calls } = fakeFetch([tok, { status: 200, body: {} }]);
     await new Netgsm({ ...opts, fetch }).sms.getBalance();
