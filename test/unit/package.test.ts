@@ -5,8 +5,8 @@ import { VERSION } from '../../src/index';
 const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
 
 describe('package', () => {
-  it('exports VERSION 2.0.0', () => {
-    expect(VERSION).toBe('2.0.0');
+  it('exports VERSION matching package.json', () => {
+    expect(VERSION).toBe(pkg.version);
   });
 
   it('package.json declares dual exports with types first', () => {

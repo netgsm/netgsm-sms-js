@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.0] - 2026-11-05
+## [2.0.0] - Unreleased
+
+Pre-release `2.0.0-beta.0` is published on the npm `next` tag: `npm install @netgsm/sms@next`.
 
 Rewrite for the new Netgsm APIs. Upgrading is non-breaking for 1.x JavaScript code: the 1.x methods
 keep working as a deprecated layer against the legacy API. See [MIGRATION.md](./MIGRATION.md).
