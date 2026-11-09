@@ -1,6 +1,6 @@
 {
   "name": "@netgsm/sms",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-beta.1",
   "description": "Netgsm client for SMS API v3, İYS consent management and Identity tokens",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
